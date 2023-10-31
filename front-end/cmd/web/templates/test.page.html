@@ -1,0 +1,590 @@
+{{template "base" .}}
+
+{{define "content" }}
+<div class="container">
+    <div class="row">
+        <div class="col">
+            <h1 class="mt-5">Create user</h1>
+            <hr>
+            <form method="post" id="main-form-registrate" class="mt-2">
+                <div class="mt-2">
+                    <label for="email-registrate">E-mail</label>
+                    <input type="email" name="email-registrate" id="email-registrate">
+                </div>
+                <div class="mt-2">
+                    <label for="first-name-registrate">First Name</label>
+                    <input type="text" name="first-name-registrate" id="first-name-registrate">
+                </div>
+                <div class="mt-2">
+                    <label for="last-name-registrate">Last Name</label>
+                    <input type="text" name="last-name-registrate" id="last-name-registrate">
+                </div>
+                <div class="mt-2">
+                    <label for="password-registrate">Password</label>
+                    <input type="password" name="password-registrate" id="password-registrate">
+                </div>
+                <div class="mt-2">
+                    <label for="repassword-registrate">Repeat password</label>
+                    <input type="password" name="repassword-registrate" id="repassword-registrate">
+                </div>
+                <div class="mt-2">
+                    <label for="active-registrate">Активность</label>
+                    <select name="active-registrate" id="active-registrate">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                    </select>
+                </div>
+                <button type="submit">Отправить</button>
+            </form>
+
+            <h1 class="mt-5">Change params</h1>
+            <hr>
+            <form method="post" id="main-form" class="mt-2">
+                <div class="mt-2">
+                    <label for="email">E-mail</label>
+                    <input type="email" name="email" id="email">
+                </div>
+                <div class="mt-2">
+                    <label for="new-email">New E-mail</label>
+                    <input type="email" name="new-email" id="new-email">
+                </div>
+                <div class="mt-2">
+                    <label for="first-name">First Name</label>
+                    <input type="text" name="first-name" id="first-name">
+                </div>
+                <div class="mt-2">
+                    <label for="last-name">Last Name</label>
+                    <input type="text" name="last-name" id="last-name">
+                </div>
+                <div class="mt-2">
+                    <label for="active">Активность</label>
+                    <select name="active" id="active">
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                    </select>
+                </div>
+                <button type="submit">Отправить</button>
+            </form>
+
+            <h1 class="mt-5">Change password</h1>
+            <hr>
+            <form method="post" id="main-form-chpassword" class="mt-2">
+                <div class="mt-2">
+                    <label for="email-chpassword">E-mail</label>
+                    <input type="email" name="email" id="email-chpassword">
+                </div>
+                <div class="mt-2">
+                    <label for="password-chpassword">Password</label>
+                    <input type="password" name="password-chpassword" id="password-chpassword">
+                </div>
+                <div class="mt-2">
+                    <label for="new-password-chpassword">New password</label>
+                    <input type="password" name="new-password-chpassword" id="new-password-chpassword">
+                </div>
+                <button type="submit">Отправить</button>
+            </form>
+
+            <h1 class="mt-5">Find and delete users</h1>
+            <hr>
+            <div class="mt-2">
+                <span>Find user</span>
+                <input type="email" placeholder="Type email" id="InputEmail">
+                <button type="button" onclick="getInputValueEmail();">Get user</button>
+
+                <input type="text" placeholder="Type id" id="InputID">
+                <button type="button" onclick="getInputValueID();">Get user</button>
+            </div>
+
+            <div class="mt-5">
+                <span>Delete user</span>
+                <input type="email" placeholder="Type email" id="InputEmailDelete">
+                <button type="button" onclick="getInputValueEmailDelete();">Delete user</button>
+
+                <input type="text" placeholder="Type id" id="InputIDDelete">
+                <button type="button" onclick="getInputValueIDDelete();">Delete user</button>
+            </div>
+
+
+
+            <h1 class="mt-5">Test microservices</h1>
+            <hr>
+            <a id="brokerBtn" class="btn btn-outline-secondary" href="javascript:void(0);">Test Broker</a>
+            <a id="authBrokerBtn" class="btn btn-outline-secondary" href="javascript:void(0);">Test Auth</a>
+            <a id="getAllBrokerBtn" class="btn btn-outline-secondary" href="javascript:void(0);">Test Get All</a>
+            <a id="logBtn" class="btn btn-outline-secondary" href="javascript:void(0);">Test Log</a>
+            <a id="mailBtn" class="btn btn-outline-secondary" href="javascript:void(0);">Test Mail</a>
+
+            <div id="output" class="mt-5" style="outline: 1px solid silver; padding: 2em;">
+                <span class="text-muted">Output shows here...</span>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col">
+            <h4 class="mt-5">Sent</h4>
+            <div class="mt-1" style="outline: 1px solid silver; padding: 2em;">
+                <pre id="payload"><span class="text-muted">Nothing sent yet...</span></pre>
+            </div>
+        </div>
+        <div class="col">
+            <h4 class="mt-5">Received</h4>
+            <div class="mt-1" style="outline: 1px solid silver; padding: 2em;">
+                <pre id="received"><span class="text-muted">Nothing received yet...</span></pre>
+            </div>
+        </div>
+    </div>
+</div>
+{{end}}
+
+{{define "js"}}
+<script>
+    let brokerBtn = document.getElementById("brokerBtn");
+    let authBrokerBtn = document.getElementById("authBrokerBtn");
+    let getAllBrokerBtn = document.getElementById("getAllBrokerBtn");
+    let logBtn = document.getElementById("logBtn");
+    let mailBtn = document.getElementById("mailBtn");
+    let output = document.getElementById("output");
+    let sent = document.getElementById("payload");
+    let received = document.getElementById("received");
+
+    mailBtn.addEventListener("click", function() {
+
+        const payload = {
+            action: "mail",
+            mail: {
+                from: "me@example.com",
+                to: "you@there.com",
+                subject: "Test email",
+                message: "Hello world!",
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    })
+
+    logBtn.addEventListener("click", function () {
+
+        const payload = {
+            action: "log",
+            log: {
+                name: "event",
+                data: "Some kind of data",
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+
+    })
+
+    getAllBrokerBtn.addEventListener("click", function() {
+
+        const payload = {
+            action: "get_all",
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = "get all users"
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    })
+
+    authBrokerBtn.addEventListener("click", function() {
+
+        const payload = {
+            action: "auth",
+            auth: {
+                email: "admin@example.com",
+                password: "verysecret",
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    })
+
+    brokerBtn.addEventListener("click", function() {
+
+        const body = {
+            method: 'GET',
+        }
+
+        fetch("http:\/\/localhost:8080", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML ="empty post request";
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    console.log(data.message);
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    })
+
+    function getInputValueEmail(){
+        var email = document.getElementById("InputEmail").value;
+
+        const payload = {
+            action: "get_by_email",
+            get_by_email: {
+                email: email,
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    }
+
+    function getInputValueID(){
+        let id = document.getElementById("InputID").value;
+
+        const payload = {
+            action: "get_by_id",
+            get_by_id: {
+                id: Number(id),
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    }
+
+    function getInputValueEmailDelete(){
+        let email = document.getElementById("InputEmailDelete").value;
+
+        const payload = {
+            action: "get_by_email_delete",
+            get_by_email: {
+                email: email,
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    }
+
+    function getInputValueIDDelete(){
+        let id = document.getElementById("InputIDDelete").value;
+
+        const payload = {
+            action: "get_by_id_delete",
+            get_by_id: {
+                id: Number(id),
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    }
+
+    document.getElementById("main-form").addEventListener("submit", checkFormUpdate)
+
+    function checkFormUpdate(event) {
+        event.preventDefault();
+
+        let email = document.getElementById("email").value;
+        let newEmail = document.getElementById("new-email").value;
+        let firstName = document.getElementById("first-name").value;
+        let lastName = document.getElementById("last-name").value;
+        let active = document.getElementById("active").value;
+
+        const payload = {
+            action: "update",
+            update: {
+                email: email,
+                email_change: newEmail,
+                first_name: firstName,
+                last_name: lastName,
+                active: Number(active),
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    }
+
+    document.getElementById("main-form-registrate").addEventListener("submit", checkFormRegistrate)
+
+    function checkFormRegistrate(event) {
+        event.preventDefault();
+
+        let email = document.getElementById("email-registrate").value;
+        let firstName = document.getElementById("first-name-registrate").value;
+        let lastName = document.getElementById("last-name-registrate").value;
+        let password = document.getElementById("password-registrate").value;
+        let repassword = document.getElementById("repassword-registrate").value;
+        let active = document.getElementById("active-registrate").value;
+
+        const payload = {
+            action: "reg",
+            reg: {
+                email: email,
+                first_name: firstName,
+                last_name: lastName,
+                password: password,
+                active: Number(active),
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    }
+
+    document.getElementById("main-form-chpassword").addEventListener("submit", checkFormChangePassword)
+
+    function checkFormChangePassword(event) {
+        event.preventDefault();
+
+        let email = document.getElementById("email-chpassword").value;
+        let password = document.getElementById("password-chpassword").value;
+        let newPassword = document.getElementById("new-password-chpassword").value;
+
+        const payload = {
+            action: "change_password",
+            change_password: {
+                email: email,
+                password: password,
+                new_password: newPassword,
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Eror: " + error;
+            })
+    }
+
+</script>
+{{end}}
