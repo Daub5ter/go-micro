@@ -254,13 +254,11 @@ func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Println("requset", requestPayload)
+	log.Println("user", user)
 
 	// check user`s password
 	valid, err := user.PasswordMatches(requestPayload.Password)
 	if err != nil || !valid {
-		log.Println(valid)
-		log.Println(err)
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
 	}
