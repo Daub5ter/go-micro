@@ -8,4 +8,4 @@
 /dataSources.local.xml
 
 # Ingore db files
-/project/db-data/
+project/db-data/
