@@ -9,6 +9,3 @@
 
 # Ingore db files
 project/db-data/
-
-# Ingore .gitignore
-.gitignore
