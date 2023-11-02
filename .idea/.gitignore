@@ -7,5 +7,6 @@
 /dataSources/
 /dataSources.local.xml
 
-# Ingore db files
+# Ingore db files and env
 project/db-data/
+project/.env
