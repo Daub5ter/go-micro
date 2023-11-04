@@ -15,7 +15,7 @@ services:
       - caddy_config:/config
 
   front-end:
-    image: daubster/front-end:1.0.6
+    image: daubster/front-end:1.0.8
     deploy:
       mode: replicated
       replicas: 1
@@ -25,6 +25,8 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    environment:
+      BROKER_URL: "http://backend"
 
   listener-service:
     image: daubster/listener-service:1.0.0
