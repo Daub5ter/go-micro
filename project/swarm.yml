@@ -15,7 +15,7 @@ services:
       - caddy_config:/config
 
   front-end:
-    image: daubster/front-end:1.0.8
+    image: daubster/front-end:1.0.9
     deploy:
       mode: replicated
       replicas: 1
