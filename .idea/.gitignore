@@ -10,3 +10,5 @@
 # Ingore db files and env
 project/db-data/
 project/.env
+
+.idea/
