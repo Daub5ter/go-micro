@@ -10,7 +10,8 @@ import (
 	"time"
 )
 
-const webPort = "8080"
+// 8080 for swarm
+const webPort = "80"
 
 type Config struct {
 	Rabbit *amqp.Connection
