@@ -3,13 +3,17 @@ package event
 import (
 	"broker/tools"
 	"context"
-	"encoding/json"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
 )
 
 type Emitter struct {
 	connection *amqp.Connection
+}
+
+type Payload struct {
+	Error error  `json:"error"`
+	Data  string `json:"data"`
 }
 
 func (e *Emitter) setup(name string) error {
@@ -50,10 +54,7 @@ func (e *Emitter) Push(event string, exchange string, severity string) error {
 }
 
 func (e *Emitter) PushWithResponse(event string, exchange string, severity string) (string, error) {
-	payload := struct {
-		Error error
-		Data  string
-	}{}
+	var payload string
 
 	channel, err := e.connection.Channel()
 	if err != nil {
@@ -91,7 +92,7 @@ func (e *Emitter) PushWithResponse(event string, exchange string, severity strin
 
 	for d := range msgs {
 		if corrID == d.CorrelationId {
-			_ = json.Unmarshal(d.Body, &payload)
+			payload = string(d.Body)
 			if err != nil {
 				return "", err
 			}
@@ -99,7 +100,7 @@ func (e *Emitter) PushWithResponse(event string, exchange string, severity strin
 		}
 	}
 
-	return payload.Data, payload.Error
+	return payload, nil
 }
 
 func NewEventEmitter(name string, conn *amqp.Connection) (Emitter, error) {

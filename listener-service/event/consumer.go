@@ -2,7 +2,9 @@ package event
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"log"
@@ -12,6 +14,12 @@ import (
 type Consumer struct {
 	conn      *amqp.Connection
 	queueName string
+}
+
+type jsonResponse struct {
+	Error   bool   `json:"error"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
 }
 
 type Payload struct {
@@ -71,6 +79,11 @@ type IDPayload struct {
 type LogPayload struct {
 	Name string `json:"name"`
 	Data string `json:"data"`
+}
+
+type PayloadResponse struct {
+	Error error  `json:"error"`
+	Data  string `json:"data"`
 }
 
 func NewConsumer(conn *amqp.Connection) (Consumer, error) {
@@ -138,7 +151,29 @@ func (consumer *Consumer) Listen() error {
 			var payload Payload
 			_ = json.Unmarshal(d.Body, &payload)
 
-			go handlePayload(payload)
+			// go handlePayload(payload)
+			response := handlePayload(payload)
+			var body string
+			if response.Error == nil {
+				body = ""
+			} else {
+				body = fmt.Sprint(response.Error)
+			}
+
+			err = ch.PublishWithContext(
+				context.TODO(),
+				"",
+				d.ReplyTo,
+				false,
+				false,
+				amqp.Publishing{
+					ContentType:   "text/plain",
+					CorrelationId: d.CorrelationId,
+					Body:          []byte(body),
+				})
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	}()
 
@@ -148,23 +183,31 @@ func (consumer *Consumer) Listen() error {
 	return nil
 }
 
-func handlePayload(payload Payload) {
+func handlePayload(payload Payload) PayloadResponse {
+	resp := PayloadResponse{}
 	switch payload.Action {
 	case "log":
 		// log whatever we get
 		err := logEvent(payload)
 		if err != nil {
-			log.Println(err)
+			resp.Error = err
+		} else {
+			resp.Data = "logged"
 		}
 	case "auth":
 		// authenticate
 		err := authEvent(payload)
 		if err != nil {
-			log.Println(err)
+			resp.Error = err
+		} else {
+			resp.Data = "authenticated"
 		}
 	default:
-		log.Printf("invalid name of function %s, RabbitMQ", payload.Action)
+		errString := fmt.Sprintf("invalid name of function %s, RabbitMQ", payload.Action)
+		resp.Error = errors.New(errString)
 	}
+
+	return resp
 }
 
 func logEvent(entry Payload) error {
@@ -189,7 +232,7 @@ func logEvent(entry Payload) error {
 
 	// make sure we get back the correct status code
 	if response.StatusCode != http.StatusAccepted {
-		return err
+		return errors.New("service don`t work")
 	}
 
 	return nil
@@ -217,29 +260,21 @@ func authEvent(entry Payload) error {
 
 	// make sure we get back the correct status code
 	if response.StatusCode == http.StatusUnauthorized {
-		return err
+		return errors.New("unauthorized")
 	} else if response.StatusCode != http.StatusAccepted {
+		return errors.New("service don`t work")
+	}
+
+	// create a variable we'll read response.Body into
+	var jsonFromService jsonResponse
+
+	// decode the json from the auth service
+	err = json.NewDecoder(response.Body).Decode(&jsonFromService)
+	if err != nil {
 		return err
 	}
 
-	/*	var payload Payload
-		payload.Action = "auth"
-		jsonPayload, _ := json.MarshalIndent(payload, "", "\t")
-
-		requestPayload, err := http.NewRequest("POST", "http://broker-service/handle", bytes.NewBuffer(jsonPayload))
-		if err != nil {
-			return err
-		}
-
-		requestPayload.Header.Set("Content-Type", "application/json")
-
-		clientPayload := &http.Client{}
-
-		responsePayload, err := clientPayload.Do(requestPayload)
-		if err != nil {
-			return err
-		}
-		defer responsePayload.Body.Close()*/
+	log.Println("jsonfromservice", jsonFromService)
 
 	return nil
 }

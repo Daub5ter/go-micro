@@ -96,7 +96,7 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 
 	switch requestPayload.Action {
 	case "auth":
-		app.authenticate(w, requestPayload.Auth)
+		app.authEventViaRabbit(w, requestPayload.Auth)
 	case "reg":
 		app.registrate(w, requestPayload.Reg)
 	case "update":
@@ -662,7 +662,7 @@ func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
 	requestPayload.Action = "log"
 	requestPayload.Log = l
 
-	err := app.pushToQueue(name, requestPayload)
+	_, err := app.pushToQueue(name, requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -681,23 +681,31 @@ func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
 	requestPayload.Action = "auth"
 	requestPayload.Auth = a
 
-	err := app.pushToQueue(name, requestPayload)
+	errorMessage, err := app.pushToQueue(name, requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
 	}
 
 	var payload jsonResponse
-	payload.Error = false
-	payload.Message = "Authenticated via RabbitMQ"
+
+	if errorMessage == "" {
+		payload.Error = false
+		payload.Message = "authenticated"
+	} else {
+		payload.Error = true
+		payload.Message = errorMessage
+	}
 
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
-func (app *Config) pushToQueue(name string, payload RequestPayload) error {
+func (app *Config) pushToQueue(name string, payload RequestPayload) (string, error) {
+	var errorMessage string
+
 	emitter, err := event.NewEventEmitter(name, app.Rabbit)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	var j []byte
@@ -708,16 +716,17 @@ func (app *Config) pushToQueue(name string, payload RequestPayload) error {
 		err = emitter.Push(string(j), name, "log")
 	case "auth":
 		j, _ = json.MarshalIndent(&payload, "", "\t")
-		err = emitter.Push(string(j), name, "auth")
+		errorMessage, err = emitter.PushWithResponse(string(j), name, "auth")
+
 	default:
 		log.Printf("invalid name of channel RabbitMQ %s", name)
 	}
 
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	return nil
+	return errorMessage, err
 }
 
 type RPCPayload struct {
