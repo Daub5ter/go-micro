@@ -112,6 +112,8 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("authpayload", requestPayload)
+
 	// validate the user against the database
 	user, err := app.Models.User.GetByEmail(requestPayload.Email)
 	if err != nil {
@@ -255,6 +257,7 @@ func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Println("user", user)
+	log.Println("requestPayload", requestPayload.Password)
 
 	// check user`s password
 	valid, err := user.PasswordMatches(requestPayload.Password)

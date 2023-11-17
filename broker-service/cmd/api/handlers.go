@@ -96,8 +96,7 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 
 	switch requestPayload.Action {
 	case "auth":
-		app.authEventViaRabbit(w, requestPayload.Auth)
-	case "auth_success":
+		app.authenticate(w, requestPayload.Auth)
 	case "reg":
 		app.registrate(w, requestPayload.Reg)
 	case "update":
