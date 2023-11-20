@@ -136,6 +136,14 @@ func (consumer *Consumer) Listen() error {
 		nil,
 	)
 
+	ch.QueueBind(
+		q.Name,
+		"get.by.email",
+		"get_by_email",
+		false,
+		nil,
+	)
+
 	if err != nil {
 		return err
 	}
@@ -179,7 +187,7 @@ func (consumer *Consumer) Listen() error {
 		}
 	}()
 
-	fmt.Printf("Waiting for message [Exchange, Queue] [logs_topic, %s]\n", q.Name)
+	fmt.Printf("Waiting for messages")
 	<-forever
 
 	return nil
@@ -204,14 +212,12 @@ func handlePayload(payload Payload) jsonResponse {
 		}
 		response = resp
 
-	case "get.by.email":
-		// get user by email
-		/*resp, err := authEvent(payload)
+	case "get_by_email":
+		resp, err := getUserByEmailEvent(payload)
 		if err != nil {
-			response.Error = err
-		} else {
-			response.Data = "authenticated"
-		}*/
+			log.Println(err)
+		}
+		response = resp
 
 	default:
 		errString := fmt.Sprintf("invalid name of function %s, RabbitMQ", payload.Action)
@@ -256,10 +262,7 @@ func authEvent(entry Payload) (jsonResponse, error) {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}
 
-	log.Println("jsonData", bytes.NewBuffer(jsonData))
-
 	// call the service
-	//TODO REMOVE E FOR TEST
 	request, err := http.NewRequest("POST", "http://authentication-service/authenticate", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
@@ -279,7 +282,48 @@ func authEvent(entry Payload) (jsonResponse, error) {
 	if response.StatusCode == http.StatusUnauthorized {
 		err = errors.New("unauthorized")
 		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
-	} else if response.StatusCode != http.StatusAccepted {
+	} else if response.StatusCode != http.StatusOK {
+		err = errors.New("service don`t work")
+		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
+	}
+
+	jsonService := jsonResponse{}
+	err = json.NewDecoder(response.Body).Decode(&jsonService)
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
+	}
+
+	return jsonService, nil
+}
+
+func getUserByEmailEvent(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.Email, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/get_by_email", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	request.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+
+	response, err := client.Do(request)
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
+	}
+	defer response.Body.Close()
+
+	// make sure we get back the correct status code
+	if response.StatusCode == http.StatusUnauthorized {
+		err = errors.New("unauthorized")
+		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
+	} else if response.StatusCode != http.StatusOK {
 		err = errors.New("service don`t work")
 		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
 	}

@@ -106,7 +106,7 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "get_all":
 		app.getAll(w)
 	case "get_by_email":
-		app.getByEmail(w, requestPayload.Email)
+		app.getByEmailViaRabbit(w, requestPayload.Email)
 	case "get_by_id":
 		app.getByID(w, requestPayload.ID)
 	case "get_by_email_delete":
@@ -678,6 +678,7 @@ func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
 func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
 	var name = "auth"
 	var requestPayload RequestPayload
+
 	requestPayload.Action = "auth"
 	requestPayload.Auth = a
 
@@ -695,16 +696,17 @@ func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
 		return
 	}
 
-	app.writeJSON(w, http.StatusAccepted, payload)
+	app.writeJSON(w, http.StatusOK, payload)
 }
 
 func (app *Config) getByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
 	var name = "get_by_email"
 	var requestPayload RequestPayload
+
 	requestPayload.Action = "get_by_email"
 	requestPayload.Email = e
 
-	_, err := app.pushToQueue(name, requestPayload)
+	response, err := app.pushToQueue(name, requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -712,7 +714,37 @@ func (app *Config) getByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
 
 	var payload jsonResponse
 
-	app.writeJSON(w, http.StatusAccepted, payload)
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
+func (app *Config) getByIDViaRabbit(w http.ResponseWriter, i IDPayload) {
+	var name = "get_by_id"
+	var requestPayload RequestPayload
+
+	requestPayload.Action = "get_by_id"
+	requestPayload.ID = i
+
+	response, err := app.pushToQueue(name, requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
 }
 
 func (app *Config) pushToQueue(name string, payload RequestPayload) ([]byte, error) {
@@ -733,7 +765,9 @@ func (app *Config) pushToQueue(name string, payload RequestPayload) ([]byte, err
 	case "auth":
 		response, err = emitter.PushWithResponse(string(j), name, "auth")
 	case "get_by_email":
-		//TODO:		payload, err = emitter.PushWithResponse()
+		response, err = emitter.PushWithResponse(string(j), name, "get.by.email")
+	case "get_by_id":
+		response, err = emitter.PushWithResponse(string(j), name, "get.by.id")
 	default:
 		log.Printf("invalid name of channel RabbitMQ %s", name)
 	}
