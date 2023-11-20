@@ -120,31 +120,16 @@ func (consumer *Consumer) Listen() error {
 		return err
 	}
 
-	ch.QueueBind(
-		q.Name,
-		"log",
-		"logs_topic",
-		false,
-		nil,
-	)
-
-	ch.QueueBind(
-		q.Name,
-		"auth",
-		"auth",
-		false,
-		nil,
-	)
-
-	ch.QueueBind(
-		q.Name,
-		"get.by.email",
-		"get_by_email",
-		false,
-		nil,
-	)
-
-	if err != nil {
+	if err = ch.QueueBind(q.Name, "log", "logs_topic", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "auth", "auth", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "get.by.email", "get_by_email", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "get.by.id", "get_by_id", false, nil); err != nil {
 		return err
 	}
 
@@ -206,14 +191,21 @@ func handlePayload(payload Payload) jsonResponse {
 
 	case "auth":
 		// authenticate
-		resp, err := authEvent(payload)
+		resp, err := auth(payload)
 		if err != nil {
 			log.Println(err)
 		}
 		response = resp
 
 	case "get_by_email":
-		resp, err := getUserByEmailEvent(payload)
+		resp, err := getUserByEmail(payload)
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
+	case "get_by_id":
+		resp, err := getUserByID(payload)
 		if err != nil {
 			log.Println(err)
 		}
@@ -255,7 +247,7 @@ func logEvent(entry Payload) error {
 	return nil
 }
 
-func authEvent(entry Payload) (jsonResponse, error) {
+func auth(entry Payload) (jsonResponse, error) {
 	// create some json we'll send to the auth microservice
 	jsonData, err := json.MarshalIndent(entry.Auth, "", "\t")
 	if err != nil {
@@ -268,35 +260,10 @@ func authEvent(entry Payload) (jsonResponse, error) {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}
 
-	request.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{}
-
-	response, err := client.Do(request)
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
-	}
-	defer response.Body.Close()
-
-	// make sure we get back the correct status code
-	if response.StatusCode == http.StatusUnauthorized {
-		err = errors.New("unauthorized")
-		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
-	} else if response.StatusCode != http.StatusOK {
-		err = errors.New("service don`t work")
-		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
-	}
-
-	jsonService := jsonResponse{}
-	err = json.NewDecoder(response.Body).Decode(&jsonService)
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
-	}
-
-	return jsonService, nil
+	return handleJSON(request)
 }
 
-func getUserByEmailEvent(entry Payload) (jsonResponse, error) {
+func getUserByEmail(entry Payload) (jsonResponse, error) {
 	// create some json we'll send to the auth microservice
 	jsonData, err := json.MarshalIndent(entry.Email, "", "\t")
 	if err != nil {
@@ -309,6 +276,26 @@ func getUserByEmailEvent(entry Payload) (jsonResponse, error) {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}
 
+	return handleJSON(request)
+}
+
+func getUserByID(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.ID, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/get_by_id", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleJSON(request)
+}
+
+func handleJSON(request *http.Request) (jsonResponse, error) {
 	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}

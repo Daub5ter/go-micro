@@ -108,7 +108,7 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "get_by_email":
 		app.getByEmailViaRabbit(w, requestPayload.Email)
 	case "get_by_id":
-		app.getByID(w, requestPayload.ID)
+		app.getByIDViaRabbit(w, requestPayload.ID)
 	case "get_by_email_delete":
 		app.getByEmailDelete(w, requestPayload.Email)
 	case "get_by_id_delete":
