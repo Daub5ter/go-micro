@@ -700,6 +700,31 @@ func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
+func (app *Config) getByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
+	var name = "get_by_email"
+	var requestPayload RequestPayload
+	requestPayload.Action = "get_by_email"
+	requestPayload.Email = e
+
+	errorMessage, err := app.pushToQueue(name, requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	if errorMessage == "" {
+		payload.Error = false
+		payload.Message = "authenticated"
+	} else {
+		payload.Error = true
+		payload.Message = errorMessage
+	}
+
+	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
 func (app *Config) pushToQueue(name string, payload RequestPayload) (string, error) {
 	var errorMessage string
 
@@ -710,13 +735,15 @@ func (app *Config) pushToQueue(name string, payload RequestPayload) (string, err
 
 	var j []byte
 
+	j, _ = json.MarshalIndent(&payload, "", "\t")
+
 	switch name {
 	case "logs_topic":
-		j, _ = json.MarshalIndent(&payload, "", "\t")
 		err = emitter.Push(string(j), name, "log")
 	case "auth":
-		j, _ = json.MarshalIndent(&payload, "", "\t")
 		errorMessage, err = emitter.PushWithResponse(string(j), name, "auth")
+	case "get_by_email":
+		//TODO:		payload, err = emitter.PushWithResponse()
 
 	default:
 		log.Printf("invalid name of channel RabbitMQ %s", name)

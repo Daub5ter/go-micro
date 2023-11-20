@@ -7,6 +7,71 @@ import (
 	"log"
 )
 
+type jsonResponse struct {
+	Error   bool   `json:"error"`
+	Message string `json:"message"`
+	Data    any    `json:"data,omitempty"`
+}
+
+type RequestPayload struct {
+	Action     string            `json:"action"`
+	Auth       AuthPayload       `json:"auth,omitempty"`
+	Reg        RegPayload        `json:"reg,omitempty"`
+	Update     UpdatePayload     `json:"update,omitempty"`
+	ChPassword ChPasswordPayload `json:"change_password,omitempty"`
+	Email      EmailPayload      `json:"get_by_email,omitempty"`
+	ID         IDPayload         `json:"get_by_id,omitempty"`
+	Log        LogPayload        `json:"log,omitempty"`
+	Mail       MailPayload       `json:"mail,omitempty"`
+}
+
+type MailPayload struct {
+	From    string `json:"from"`
+	To      string `json:"to"`
+	Subject string `json:"subject"`
+	Message string `json:"message"`
+}
+
+type AuthPayload struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+type RegPayload struct {
+	Email     string `json:"email"`
+	FirstName string `json:"first_name,omitempty"`
+	LastName  string `json:"last_name,omitempty"`
+	Password  string `json:"password"`
+	Active    int    `json:"active"`
+}
+
+type UpdatePayload struct {
+	Email       string `json:"email"`
+	EmailChange string `json:"email_change"`
+	FirstName   string `json:"first_name,omitempty,omitempty"`
+	LastName    string `json:"last_name,omitempty,omitempty"`
+	Active      int    `json:"active,omitempty"`
+}
+
+type ChPasswordPayload struct {
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+	NewPassword string `json:"new_password"`
+}
+
+type EmailPayload struct {
+	Email string `json:"email"`
+}
+
+type IDPayload struct {
+	ID int `json:"id"`
+}
+
+type LogPayload struct {
+	Name string `json:"name"`
+	Data string `json:"data"`
+}
+
 type Emitter struct {
 	connection *amqp.Connection
 }

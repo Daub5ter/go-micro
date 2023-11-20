@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	amqp "github.com/rabbitmq/amqp091-go"
+	"io"
 	"log"
 	"net/http"
 )
@@ -81,10 +82,10 @@ type LogPayload struct {
 	Data string `json:"data"`
 }
 
-type PayloadResponse struct {
-	Error error  `json:"error"`
-	Data  string `json:"data"`
-}
+//type PayloadResponse struct {
+//	Error error  `json:"error"`
+//	Data  string `json:"data"`
+//}
 
 func NewConsumer(conn *amqp.Connection) (Consumer, error) {
 	consumer := Consumer{
@@ -153,12 +154,9 @@ func (consumer *Consumer) Listen() error {
 
 			// go handlePayload(payload)
 			response := handlePayload(payload)
+			log.Println("response", response)
 			var body string
-			if response.Error == nil {
-				body = ""
-			} else {
-				body = fmt.Sprint(response.Error)
-			}
+			body = ""
 
 			err = ch.PublishWithContext(
 				context.TODO(),
@@ -183,31 +181,37 @@ func (consumer *Consumer) Listen() error {
 	return nil
 }
 
-func handlePayload(payload Payload) PayloadResponse {
-	resp := PayloadResponse{}
+func handlePayload(payload Payload) Payload {
+	response := Payload{}
 	switch payload.Action {
 	case "log":
 		// log whatever we get
 		err := logEvent(payload)
 		if err != nil {
-			resp.Error = err
-		} else {
-			resp.Data = "logged"
+			log.Println(err)
 		}
 	case "auth":
 		// authenticate
-		err := authEvent(payload)
+		resp, err := authEvent(payload)
 		if err != nil {
-			resp.Error = err
+			response.Auth = AuthPayload{}
 		} else {
-			resp.Data = "authenticated"
+			response.Auth = resp
 		}
+	case "get.by.email":
+		// get user by email
+		/*resp, err := authEvent(payload)
+		if err != nil {
+			response.Error = err
+		} else {
+			response.Data = "authenticated"
+		}*/
 	default:
 		errString := fmt.Sprintf("invalid name of function %s, RabbitMQ", payload.Action)
-		resp.Error = errors.New(errString)
+		log.Println(errString)
 	}
 
-	return resp
+	return response
 }
 
 func logEvent(entry Payload) error {
@@ -238,14 +242,16 @@ func logEvent(entry Payload) error {
 	return nil
 }
 
-func authEvent(entry Payload) error {
+func authEvent(entry Payload) (AuthPayload, error) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(entry.Auth, "", "\t")
+
+	log.Println("jsonData", bytes.NewBuffer(jsonData))
 
 	// call the service
 	request, err := http.NewRequest("POST", "http://authentication-service/authenticate", bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err
+		return AuthPayload{}, err
 	}
 
 	request.Header.Set("Content-Type", "application/json")
@@ -254,27 +260,28 @@ func authEvent(entry Payload) error {
 
 	response, err := client.Do(request)
 	if err != nil {
-		return err
+		return AuthPayload{}, err
 	}
 	defer response.Body.Close()
 
 	// make sure we get back the correct status code
 	if response.StatusCode == http.StatusUnauthorized {
-		return errors.New("unauthorized")
+		return AuthPayload{}, errors.New("unauthorized")
 	} else if response.StatusCode != http.StatusAccepted {
-		return errors.New("service don`t work")
+		return AuthPayload{}, errors.New("service don`t work")
 	}
 
-	// create a variable we'll read response.Body into
-	var jsonFromService jsonResponse
-
-	// decode the json from the auth service
-	err = json.NewDecoder(response.Body).Decode(&jsonFromService)
+	resp := AuthPayload{}
+	b, err := io.ReadAll(response.Body)
 	if err != nil {
-		return err
+		return AuthPayload{}, err
 	}
 
-	log.Println("jsonfromservice", jsonFromService)
+	err = json.Unmarshal(b, &resp)
+	if err != nil {
+		return AuthPayload{}, err
+	}
 
-	return nil
+	log.Println("response from auth in listener service", resp)
+	return resp, nil
 }
