@@ -118,12 +118,12 @@ func (e *Emitter) Push(event string, exchange string, severity string) error {
 	return nil
 }
 
-func (e *Emitter) PushWithResponse(event string, exchange string, severity string) (string, error) {
-	var payload string
+func (e *Emitter) PushWithResponse(event string, exchange string, severity string) ([]byte, error) {
+	var payload []byte
 
 	channel, err := e.connection.Channel()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer channel.Close()
 
@@ -131,7 +131,7 @@ func (e *Emitter) PushWithResponse(event string, exchange string, severity strin
 
 	msgs, err := channel.Consume(q.Name, "", true, false, false, false, nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	corrID := tools.RandomString(32)
@@ -152,14 +152,14 @@ func (e *Emitter) PushWithResponse(event string, exchange string, severity strin
 		},
 	)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	for d := range msgs {
 		if corrID == d.CorrelationId {
-			payload = string(d.Body)
+			payload = d.Body
 			if err != nil {
-				return "", err
+				return nil, err
 			}
 			break
 		}

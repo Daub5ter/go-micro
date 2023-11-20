@@ -681,7 +681,7 @@ func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
 	requestPayload.Action = "auth"
 	requestPayload.Auth = a
 
-	errorMessage, err := app.pushToQueue(name, requestPayload)
+	response, err := app.pushToQueue(name, requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -689,12 +689,10 @@ func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
 
 	var payload jsonResponse
 
-	if errorMessage == "" {
-		payload.Error = false
-		payload.Message = "authenticated"
-	} else {
-		payload.Error = true
-		payload.Message = errorMessage
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
 	}
 
 	app.writeJSON(w, http.StatusAccepted, payload)
@@ -706,7 +704,7 @@ func (app *Config) getByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
 	requestPayload.Action = "get_by_email"
 	requestPayload.Email = e
 
-	errorMessage, err := app.pushToQueue(name, requestPayload)
+	_, err := app.pushToQueue(name, requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -714,23 +712,15 @@ func (app *Config) getByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
 
 	var payload jsonResponse
 
-	if errorMessage == "" {
-		payload.Error = false
-		payload.Message = "authenticated"
-	} else {
-		payload.Error = true
-		payload.Message = errorMessage
-	}
-
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
-func (app *Config) pushToQueue(name string, payload RequestPayload) (string, error) {
-	var errorMessage string
+func (app *Config) pushToQueue(name string, payload RequestPayload) ([]byte, error) {
+	var response []byte
 
 	emitter, err := event.NewEventEmitter(name, app.Rabbit)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	var j []byte
@@ -741,19 +731,18 @@ func (app *Config) pushToQueue(name string, payload RequestPayload) (string, err
 	case "logs_topic":
 		err = emitter.Push(string(j), name, "log")
 	case "auth":
-		errorMessage, err = emitter.PushWithResponse(string(j), name, "auth")
+		response, err = emitter.PushWithResponse(string(j), name, "auth")
 	case "get_by_email":
 		//TODO:		payload, err = emitter.PushWithResponse()
-
 	default:
 		log.Printf("invalid name of channel RabbitMQ %s", name)
 	}
 
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return errorMessage, err
+	return response, err
 }
 
 type RPCPayload struct {
