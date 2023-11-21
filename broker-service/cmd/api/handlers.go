@@ -84,6 +84,12 @@ type LogPayload struct {
 	Data string `json:"data"`
 }
 
+// RPCPayload stores log data RPC
+type RPCPayload struct {
+	Name string
+	Data string
+}
+
 // Broker returns simple message of json
 func (app *Config) Broker(w http.ResponseWriter, r *http.Request) {
 	payload := jsonResponse{
@@ -110,11 +116,11 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "registration_user":
 		app.registrationUserViaRabbit(w, requestPayload.Reg)
 	case "update_user":
-		app.updateUser(w, requestPayload.UpdateUser)
-	case "change_password_user":
-		app.changePassword(w, requestPayload.ChangePassword)
+		app.updateUserViaRabbit(w, requestPayload.UpdateUser)
+	case "change_password":
+		app.changePasswordViaRabbit(w, requestPayload.ChangePassword)
 	case "get_all_users":
-		app.getAllUsers(w)
+		app.getAllUsersViaRabbit(w)
 	case "get_user_by_email":
 		app.getUserByEmailViaRabbit(w, requestPayload.Email)
 	case "get_user_by_id":
@@ -737,6 +743,29 @@ func (app *Config) authenticateUserViaRabbit(w http.ResponseWriter, a AuthUserPa
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// getAllUsersViaRabbit returns all users via RabbitMQ
+func (app *Config) getAllUsersViaRabbit(w http.ResponseWriter) {
+	var requestPayload RequestPayload
+
+	requestPayload.Action = "get_all_users"
+
+	response, err := app.pushToQueue(requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
 // getUserByEmailViaRabbit returns user by email via RabbitMQ
 func (app *Config) getUserByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
 	var requestPayload RequestPayload
@@ -806,6 +835,54 @@ func (app *Config) registrationUserViaRabbit(w http.ResponseWriter, r RegUserPay
 		return
 	}
 
+	app.writeJSON(w, http.StatusCreated, payload)
+}
+
+// updateUser updates user`s fields via RabbitMQ
+func (app *Config) updateUserViaRabbit(w http.ResponseWriter, u UpdateUserPayload) {
+	var requestPayload RequestPayload
+
+	requestPayload.Action = "update_user"
+	requestPayload.UpdateUser = u
+
+	response, err := app.pushToQueue(requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
+// changePasswordViaRabbit changes user`s password via RabbitMQ
+func (app *Config) changePasswordViaRabbit(w http.ResponseWriter, cp ChangePasswordPayload) {
+	var requestPayload RequestPayload
+
+	requestPayload.Action = "change_password"
+	requestPayload.ChangePassword = cp
+
+	response, err := app.pushToQueue(requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
@@ -829,12 +906,18 @@ func (app *Config) pushToQueue(payload RequestPayload) ([]byte, error) {
 		err = emitter.Push(string(j), payload.Action, "mail")
 	case "authenticate_user":
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "authenticate.user")
+	case "get_all_users":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "get.all.users")
 	case "get_user_by_email":
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "get.user.by.email")
 	case "get_user_by_id":
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "get.user.by.id")
 	case "registration_user":
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "registration.user")
+	case "update_user":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "update.user")
+	case "change_password":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "change.password")
 	default:
 		log.Printf("invalid name of channel RabbitMQ %s", payload.Action)
 	}
@@ -844,12 +927,6 @@ func (app *Config) pushToQueue(payload RequestPayload) ([]byte, error) {
 	}
 
 	return response, err
-}
-
-// RPCPayload stores log data RPC
-type RPCPayload struct {
-	Name string
-	Data string
 }
 
 // logItemViaRpc logs some data via RPC

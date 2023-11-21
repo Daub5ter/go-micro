@@ -229,7 +229,7 @@ func (app *Config) Update(w http.ResponseWriter, r *http.Request) {
 
 	payload := jsonResponse{
 		Error:   false,
-		Message: fmt.Sprintf("Updated user with id %s", user.ID),
+		Message: fmt.Sprintf("Updated user with id %v", user.ID),
 		Data:    user.Email,
 	}
 
@@ -340,7 +340,7 @@ func (app *Config) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log getByID
-	go app.logRequest("delete user", fmt.Sprintf("user with id %s deleted", requestPayload.ID))
+	go app.logRequest("delete user", fmt.Sprintf("user with id %v deleted", requestPayload.ID))
 
 	payload := jsonResponse{
 		Error:   false,

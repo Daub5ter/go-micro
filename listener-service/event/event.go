@@ -14,6 +14,9 @@ func declareExchange(ch *amqp.Channel) error {
 	if err := ch.ExchangeDeclare("authenticate_user", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
+	if err := ch.ExchangeDeclare("get_all_users", "topic", true, false, false, false, nil); err != nil {
+		return err
+	}
 	if err := ch.ExchangeDeclare("get_user_by_email", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
@@ -21,6 +24,12 @@ func declareExchange(ch *amqp.Channel) error {
 		return err
 	}
 	if err := ch.ExchangeDeclare("registration_user", "topic", true, false, false, false, nil); err != nil {
+		return err
+	}
+	if err := ch.ExchangeDeclare("update_user", "topic", true, false, false, false, nil); err != nil {
+		return err
+	}
+	if err := ch.ExchangeDeclare("change_password", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
 

@@ -16,12 +16,14 @@ type Consumer struct {
 	queueName string
 }
 
+// jsonResponse stores json response from services
 type jsonResponse struct {
 	Error   bool   `json:"error"`
 	Message string `json:"message"`
 	Data    any    `json:"data,omitempty"`
 }
 
+// Payload is basic structure to indicate action and data`s structure
 type Payload struct {
 	Action         string                `json:"action"`
 	Auth           AuthUserPayload       `json:"auth,omitempty"`
@@ -34,6 +36,7 @@ type Payload struct {
 	Mail           MailPayload           `json:"mail,omitempty"`
 }
 
+// MailPayload stores data to send mail to user
 type MailPayload struct {
 	From    string `json:"from"`
 	To      string `json:"to"`
@@ -41,11 +44,13 @@ type MailPayload struct {
 	Message string `json:"message"`
 }
 
+// AuthUserPayload stores data to authenticate user
 type AuthUserPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
+// RegUserPayload stores data to registration user
 type RegUserPayload struct {
 	Email     string `json:"email"`
 	FirstName string `json:"first_name,omitempty"`
@@ -54,6 +59,7 @@ type RegUserPayload struct {
 	Active    int    `json:"active"`
 }
 
+// UpdateUserPayload stores data to update user
 type UpdateUserPayload struct {
 	Email       string `json:"email"`
 	EmailChange string `json:"email_change"`
@@ -62,20 +68,24 @@ type UpdateUserPayload struct {
 	Active      int    `json:"active,omitempty"`
 }
 
+// ChangePasswordPayload stores data to change password
 type ChangePasswordPayload struct {
 	Email       string `json:"email"`
 	Password    string `json:"password"`
 	NewPassword string `json:"new_password"`
 }
 
+// EmailPayload stores data of email
 type EmailPayload struct {
 	Email string `json:"email"`
 }
 
+// IDPayload stores id data
 type IDPayload struct {
 	ID int `json:"id"`
 }
 
+// LogPayload stores log data
 type LogPayload struct {
 	Name string `json:"name"`
 	Data string `json:"data"`
@@ -124,6 +134,9 @@ func (consumer *Consumer) Listen() error {
 	if err = ch.QueueBind(q.Name, "authenticate.user", "authenticate_user", false, nil); err != nil {
 		return err
 	}
+	if err = ch.QueueBind(q.Name, "get.all.users", "get_all_users", false, nil); err != nil {
+		return err
+	}
 	if err = ch.QueueBind(q.Name, "get.user.by.email", "get_user_by_email", false, nil); err != nil {
 		return err
 	}
@@ -131,6 +144,12 @@ func (consumer *Consumer) Listen() error {
 		return err
 	}
 	if err = ch.QueueBind(q.Name, "registration.user", "registration_user", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "update.user", "update_user", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "change.password", "change_password", false, nil); err != nil {
 		return err
 	}
 
@@ -203,6 +222,13 @@ func handlePayload(payload Payload) jsonResponse {
 		}
 		response = resp
 
+	case "get_all_users":
+		resp, err := getAllUsers()
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
 	case "get_user_by_email":
 		resp, err := getUserByEmail(payload)
 		if err != nil {
@@ -219,6 +245,20 @@ func handlePayload(payload Payload) jsonResponse {
 
 	case "registration_user":
 		resp, err := registrationUser(payload)
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
+	case "update_user":
+		resp, err := updateUser(payload)
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
+	case "change_password":
+		resp, err := changePassword(payload)
 		if err != nil {
 			log.Println(err)
 		}
@@ -277,6 +317,16 @@ func auth(entry Payload) (jsonResponse, error) {
 	return handleSync(request, http.StatusOK)
 }
 
+// getAllUsers returns all users via RabbitMQ
+func getAllUsers() (jsonResponse, error) {
+	request, err := http.NewRequest("GET", "http://authentication-service/get_all", nil)
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request, http.StatusOK)
+}
+
 // getUserByEmail returns user by email via RabbitMQ
 func getUserByEmail(entry Payload) (jsonResponse, error) {
 	// create some json we'll send to the auth microservice
@@ -328,6 +378,40 @@ func registrationUser(entry Payload) (jsonResponse, error) {
 	return handleSync(request, http.StatusCreated)
 }
 
+// updateUser updates some user`s fields via RabbitMQ
+func updateUser(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.UpdateUser, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("PUT", "http://authentication-service/update", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request, http.StatusOK)
+}
+
+// changePassword changes user`s password via RabbitMQ
+func changePassword(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.ChangePassword, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("PUT", "http://authentication-service/change_password", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request, http.StatusOK)
+}
+
 // handleAsync is template of async request
 func handleAsync(request *http.Request) error {
 	request.Header.Set("Content-Type", "application/json")
@@ -348,7 +432,7 @@ func handleAsync(request *http.Request) error {
 	return nil
 }
 
-// handleSync is template of sync request
+// handleSync is template of sync request. code is http status which should be if function is work
 func handleSync(request *http.Request, code int) (jsonResponse, error) {
 	request.Header.Set("Content-Type", "application/json")
 
