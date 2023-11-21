@@ -6,30 +6,30 @@
         <div class="col">
             <h1 class="mt-5">Create user</h1>
             <hr>
-            <form method="post" id="main-form-registrate" class="mt-2">
+            <form method="post" id="main-form-registration" class="mt-2">
                 <div class="mt-2">
-                    <label for="email-registrate">E-mail</label>
-                    <input type="email" name="email-registrate" id="email-registrate">
+                    <label for="email-registration">E-mail</label>
+                    <input type="email" name="email-registration" id="email-registration">
                 </div>
                 <div class="mt-2">
-                    <label for="first-name-registrate">First Name</label>
-                    <input type="text" name="first-name-registrate" id="first-name-registrate">
+                    <label for="first-name-registration">First Name</label>
+                    <input type="text" name="first-name-registration" id="first-name-registration">
                 </div>
                 <div class="mt-2">
-                    <label for="last-name-registrate">Last Name</label>
-                    <input type="text" name="last-name-registrate" id="last-name-registrate">
+                    <label for="last-name-registration">Last Name</label>
+                    <input type="text" name="last-name-registration" id="last-name-registration">
                 </div>
                 <div class="mt-2">
-                    <label for="password-registrate">Password</label>
-                    <input type="password" name="password-registrate" id="password-registrate">
+                    <label for="password-registration">Password</label>
+                    <input type="password" name="password-registration" id="password-registration">
                 </div>
                 <div class="mt-2">
-                    <label for="repassword-registrate">Repeat password</label>
-                    <input type="password" name="repassword-registrate" id="repassword-registrate">
+                    <label for="repassword-registration">Repeat password</label>
+                    <input type="password" name="repassword-registration" id="repassword-registration">
                 </div>
                 <div class="mt-2">
-                    <label for="active-registrate">Активность</label>
-                    <select name="active-registrate" id="active-registrate">
+                    <label for="active-registration">Активность</label>
+                    <select name="active-registration" id="active-registration">
                         <option value="0">0</option>
                         <option value="1">1</option>
                     </select>
@@ -423,7 +423,7 @@
 
         const payload = {
             action: "delete_user_by_email",
-            get_by_email: {
+            email: {
                 email: email,
             }
         }
@@ -458,7 +458,7 @@
 
         const payload = {
             action: "delete_user_by_id",
-            get_by_id: {
+            id: {
                 id: Number(id),
             }
         }
@@ -535,20 +535,20 @@
             })
     }
 
-    document.getElementById("main-form-registrate").addEventListener("submit", checkFormRegistrate)
+    document.getElementById("main-form-registration").addEventListener("submit", checkFormRegistrate)
 
     function checkFormRegistrate(event) {
         event.preventDefault();
 
-        let email = document.getElementById("email-registrate").value;
-        let firstName = document.getElementById("first-name-registrate").value;
-        let lastName = document.getElementById("last-name-registrate").value;
-        let password = document.getElementById("password-registrate").value;
-        let repassword = document.getElementById("repassword-registrate").value;
-        let active = document.getElementById("active-registrate").value;
+        let email = document.getElementById("email-registration").value;
+        let firstName = document.getElementById("first-name-registration").value;
+        let lastName = document.getElementById("last-name-registration").value;
+        let password = document.getElementById("password-registration").value;
+        let repassword = document.getElementById("repassword-registration").value;
+        let active = document.getElementById("active-registration").value;
 
         const payload = {
-            action: "registrate_user",
+            action: "registration_user",
             reg: {
                 email: email,
                 first_name: firstName,

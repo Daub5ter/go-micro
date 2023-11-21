@@ -27,11 +27,11 @@ func (app *Config) routes() http.Handler {
 	mux.Put("/update", app.Update)
 	mux.Put("/change_password", app.ChangePassword)
 	mux.Post("/authenticate", app.Authenticate)
-	mux.Post("/registrate", app.Registrate)
+	mux.Post("/registration", app.Registration)
 	mux.Post("/get_by_email", app.GetByEmail)
 	mux.Post("/get_by_id", app.GetByID)
-	mux.Delete("/get_by_email_delete", app.GetByEmailDelete)
-	mux.Delete("/get_by_id_delete", app.GetByIDDelete)
+	mux.Delete("/delete_by_email", app.DeleteByEmail)
+	mux.Delete("/delete_by_id", app.DeleteByID)
 
 	return mux
 }

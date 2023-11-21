@@ -20,6 +20,9 @@ func declareExchange(ch *amqp.Channel) error {
 	if err := ch.ExchangeDeclare("get_user_by_id", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
+	if err := ch.ExchangeDeclare("registration_user", "topic", true, false, false, false, nil); err != nil {
+		return err
+	}
 
 	return nil
 }

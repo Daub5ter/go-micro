@@ -11,6 +11,7 @@ import (
 	"time"
 )
 
+// GetByEmail returns user by email
 func (app *Config) GetByEmail(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		Email string `json:"email"`
@@ -21,8 +22,6 @@ func (app *Config) GetByEmail(w http.ResponseWriter, r *http.Request) {
 		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
-
-	log.Println("email", requestPayload)
 
 	// get user form database
 	user, err := app.Models.User.GetByEmail(requestPayload.Email)
@@ -43,7 +42,8 @@ func (app *Config) GetByEmail(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) Registrate(w http.ResponseWriter, r *http.Request) {
+// Registration creates user and returns user`s ID
+func (app *Config) Registration(w http.ResponseWriter, r *http.Request) {
 	var requestPayload data.User
 
 	err := app.readJSON(w, r, &requestPayload)
@@ -59,18 +59,19 @@ func (app *Config) Registrate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log registrate
-	go app.logRequest("registrated", fmt.Sprintf("%s registrated in", requestPayload.Email))
+	// log registration
+	go app.logRequest("registered", fmt.Sprintf("%s registered in", requestPayload.Email))
 
 	payload := jsonResponse{
 		Error:   false,
-		Message: fmt.Sprintf("Created user with id %s", id),
+		Message: fmt.Sprintf("Created user with id %v", id),
 		Data:    id,
 	}
 
 	app.writeJSON(w, http.StatusCreated, payload)
 }
 
+// GetAll returns all users
 func (app *Config) GetAll(w http.ResponseWriter, r *http.Request) {
 	// get all users from database
 	users, err := app.Models.User.GetAll()
@@ -91,6 +92,7 @@ func (app *Config) GetAll(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// Authenticate auths user with email and password
 func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		Email    string `json:"email"`
@@ -147,6 +149,7 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// GetByID returns user by ID
 func (app *Config) GetByID(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		ID int `json:"id"`
@@ -157,8 +160,6 @@ func (app *Config) GetByID(w http.ResponseWriter, r *http.Request) {
 		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
-
-	log.Println("id", requestPayload)
 
 	// validate the user against the database
 	user, err := app.Models.User.GetOne(requestPayload.ID)
@@ -179,6 +180,7 @@ func (app *Config) GetByID(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// Update updates user`s fields
 func (app *Config) Update(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		Email       string `json:"email"`
@@ -234,6 +236,7 @@ func (app *Config) Update(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// ChangePassword changes user`s password
 func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		Email       string `json:"email"`
@@ -280,7 +283,8 @@ func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) GetByEmailDelete(w http.ResponseWriter, r *http.Request) {
+// DeleteByEmail deletes user by email
+func (app *Config) DeleteByEmail(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		Email string `json:"email"`
 	}
@@ -316,7 +320,8 @@ func (app *Config) GetByEmailDelete(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) GetByIDDelete(w http.ResponseWriter, r *http.Request) {
+// DeleteByID deletes user by ID
+func (app *Config) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		ID int `json:"id"`
 	}
@@ -346,6 +351,7 @@ func (app *Config) GetByIDDelete(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// logRequest requests of logger-service to log event
 func (app *Config) logRequest(name, data string) {
 	var entry struct {
 		Name string `json:"name"`

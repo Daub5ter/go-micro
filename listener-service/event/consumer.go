@@ -130,6 +130,9 @@ func (consumer *Consumer) Listen() error {
 	if err = ch.QueueBind(q.Name, "get.user.by.id", "get_user_by_id", false, nil); err != nil {
 		return err
 	}
+	if err = ch.QueueBind(q.Name, "registration.user", "registration_user", false, nil); err != nil {
+		return err
+	}
 
 	messages, err := ch.Consume(q.Name, "", true, false, false, false, nil)
 	if err != nil {
@@ -213,6 +216,13 @@ func handlePayload(payload Payload) jsonResponse {
 		}
 		response = resp
 
+	case "registration_user":
+		resp, err := registrationUser(payload)
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
 	default:
 		errString := fmt.Sprintf("invalid name of function %s, RabbitMQ", payload.Action)
 		log.Println(errString)
@@ -260,7 +270,7 @@ func auth(entry Payload) (jsonResponse, error) {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}
 
-	return handleSync(request)
+	return handleSync(request, http.StatusOK)
 }
 
 func getUserByEmail(entry Payload) (jsonResponse, error) {
@@ -276,7 +286,7 @@ func getUserByEmail(entry Payload) (jsonResponse, error) {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}
 
-	return handleSync(request)
+	return handleSync(request, http.StatusOK)
 }
 
 func getUserByID(entry Payload) (jsonResponse, error) {
@@ -292,7 +302,23 @@ func getUserByID(entry Payload) (jsonResponse, error) {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}
 
-	return handleSync(request)
+	return handleSync(request, http.StatusOK)
+}
+
+func registrationUser(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.Reg, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/registration", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request, http.StatusCreated)
 }
 
 func handleAsync(request *http.Request) error {
@@ -314,7 +340,7 @@ func handleAsync(request *http.Request) error {
 	return nil
 }
 
-func handleSync(request *http.Request) (jsonResponse, error) {
+func handleSync(request *http.Request, code int) (jsonResponse, error) {
 	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -329,7 +355,7 @@ func handleSync(request *http.Request) (jsonResponse, error) {
 	if response.StatusCode == http.StatusUnauthorized {
 		err = errors.New("unauthorized")
 		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
-	} else if response.StatusCode != http.StatusOK {
+	} else if response.StatusCode != code {
 		err = errors.New("service don`t work")
 		return jsonResponse{Error: true, Message: fmt.Sprintf("%v", err)}, err
 	}
