@@ -179,6 +179,7 @@ func (consumer *Consumer) Listen() error {
 	return nil
 }
 
+// handlePayload does request and returns response
 func handlePayload(payload Payload) jsonResponse {
 	response := jsonResponse{}
 
@@ -231,6 +232,7 @@ func handlePayload(payload Payload) jsonResponse {
 	return response
 }
 
+// logEvent cals the async logger microservice
 func logEvent(entry Payload) error {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(entry.Log, "", "\t")
@@ -244,6 +246,7 @@ func logEvent(entry Payload) error {
 	return handleAsync(request)
 }
 
+// sendMail sends async message to user`s email
 func sendMail(entry Payload) error {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(entry.Mail, "", "\t")
@@ -257,6 +260,7 @@ func sendMail(entry Payload) error {
 	return handleAsync(request)
 }
 
+// auth auths user with email and password via RabbitMQ
 func auth(entry Payload) (jsonResponse, error) {
 	// create some json we'll send to the auth microservice
 	jsonData, err := json.MarshalIndent(entry.Auth, "", "\t")
@@ -273,6 +277,7 @@ func auth(entry Payload) (jsonResponse, error) {
 	return handleSync(request, http.StatusOK)
 }
 
+// getUserByEmail returns user by email via RabbitMQ
 func getUserByEmail(entry Payload) (jsonResponse, error) {
 	// create some json we'll send to the auth microservice
 	jsonData, err := json.MarshalIndent(entry.Email, "", "\t")
@@ -289,6 +294,7 @@ func getUserByEmail(entry Payload) (jsonResponse, error) {
 	return handleSync(request, http.StatusOK)
 }
 
+// getUserByID returns user by ID via RabbitMQ
 func getUserByID(entry Payload) (jsonResponse, error) {
 	// create some json we'll send to the auth microservice
 	jsonData, err := json.MarshalIndent(entry.ID, "", "\t")
@@ -305,6 +311,7 @@ func getUserByID(entry Payload) (jsonResponse, error) {
 	return handleSync(request, http.StatusOK)
 }
 
+// registrationUser creates user and returns user`s ID via RabbitMQ
 func registrationUser(entry Payload) (jsonResponse, error) {
 	// create some json we'll send to the auth microservice
 	jsonData, err := json.MarshalIndent(entry.Reg, "", "\t")
@@ -321,6 +328,7 @@ func registrationUser(entry Payload) (jsonResponse, error) {
 	return handleSync(request, http.StatusCreated)
 }
 
+// handleAsync is template of async request
 func handleAsync(request *http.Request) error {
 	request.Header.Set("Content-Type", "application/json")
 
@@ -340,6 +348,7 @@ func handleAsync(request *http.Request) error {
 	return nil
 }
 
+// handleSync is template of sync request
 func handleSync(request *http.Request, code int) (jsonResponse, error) {
 	request.Header.Set("Content-Type", "application/json")
 
