@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"log"
@@ -114,9 +115,9 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "get_by_id_delete":
 		app.getByIDDelete(w, requestPayload.ID)
 	case "log":
-		app.logItemViaRpc(w, requestPayload.Log)
+		app.logEventViaRabbit(w, requestPayload.Log)
 	case "mail":
-		app.sendMail(w, requestPayload.Mail)
+		app.sendMailViaRabbit(w, requestPayload.Mail)
 
 	default:
 		app.errorJSON(w, errors.New("unknown action"))
@@ -656,8 +657,27 @@ func (app *Config) sendMail(w http.ResponseWriter, msg MailPayload) {
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
+func (app *Config) sendMailViaRabbit(w http.ResponseWriter, msg MailPayload) {
+	var name = "mail"
+	var requestPayload RequestPayload
+	requestPayload.Action = "mail"
+	requestPayload.Mail = msg
+
+	_, err := app.pushToQueue(name, requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = fmt.Sprintf("Message sent to %s", requestPayload.Mail.To)
+
+	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
 func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
-	var name = "logs_topic"
+	var name = "log"
 	var requestPayload RequestPayload
 	requestPayload.Action = "log"
 	requestPayload.Log = l
@@ -760,8 +780,10 @@ func (app *Config) pushToQueue(name string, payload RequestPayload) ([]byte, err
 	j, _ = json.MarshalIndent(&payload, "", "\t")
 
 	switch name {
-	case "logs_topic":
+	case "log":
 		err = emitter.Push(string(j), name, "log")
+	case "mail":
+		err = emitter.Push(string(j), name, "mail")
 	case "auth":
 		response, err = emitter.PushWithResponse(string(j), name, "auth")
 	case "get_by_email":

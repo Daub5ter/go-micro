@@ -7,7 +7,7 @@ import (
 
 func declareExchange(name string, ch *amqp.Channel) error {
 	switch name {
-	case "logs_topic", "auth", "get_by_email", "get_by_id":
+	case "log", "mail", "auth", "get_by_email", "get_by_id":
 		return ch.ExchangeDeclare(
 			name,
 			"topic",

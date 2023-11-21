@@ -5,7 +5,10 @@ import (
 )
 
 func declareExchange(ch *amqp.Channel) error {
-	if err := ch.ExchangeDeclare("logs_topic", "topic", true, false, false, false, nil); err != nil {
+	if err := ch.ExchangeDeclare("log", "topic", true, false, false, false, nil); err != nil {
+		return err
+	}
+	if err := ch.ExchangeDeclare("mail", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
 	if err := ch.ExchangeDeclare("auth", "topic", true, false, false, false, nil); err != nil {

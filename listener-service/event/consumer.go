@@ -120,7 +120,10 @@ func (consumer *Consumer) Listen() error {
 		return err
 	}
 
-	if err = ch.QueueBind(q.Name, "log", "logs_topic", false, nil); err != nil {
+	if err = ch.QueueBind(q.Name, "log", "log", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "mail", "mail", false, nil); err != nil {
 		return err
 	}
 	if err = ch.QueueBind(q.Name, "auth", "auth", false, nil); err != nil {
@@ -188,6 +191,12 @@ func handlePayload(payload Payload) jsonResponse {
 			log.Println(err)
 		}
 
+	case "mail":
+		err := sendMail(payload)
+		if err != nil {
+			log.Println(err)
+		}
+
 	case "auth":
 		resp, err := auth(payload)
 		if err != nil {
@@ -227,6 +236,71 @@ func logEvent(entry Payload) error {
 		return err
 	}
 
+	return handleAsync(request)
+}
+
+func sendMail(entry Payload) error {
+	// create some json we'll send to the auth microservice
+	jsonData, _ := json.MarshalIndent(entry.Mail, "", "\t")
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://mailer-service/send", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return err
+	}
+
+	return handleAsync(request)
+}
+
+func auth(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.Auth, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/authenticate", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request)
+}
+
+func getUserByEmail(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.Email, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/get_by_email", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request)
+}
+
+func getUserByID(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.ID, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/get_by_id", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request)
+}
+
+func handleAsync(request *http.Request) error {
 	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
@@ -245,55 +319,7 @@ func logEvent(entry Payload) error {
 	return nil
 }
 
-func auth(entry Payload) (jsonResponse, error) {
-	// create some json we'll send to the auth microservice
-	jsonData, err := json.MarshalIndent(entry.Auth, "", "\t")
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
-	}
-
-	// call the service
-	request, err := http.NewRequest("POST", "http://authentication-service/authenticate", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
-	}
-
-	return handleJSON(request)
-}
-
-func getUserByEmail(entry Payload) (jsonResponse, error) {
-	// create some json we'll send to the auth microservice
-	jsonData, err := json.MarshalIndent(entry.Email, "", "\t")
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
-	}
-
-	// call the service
-	request, err := http.NewRequest("POST", "http://authentication-service/get_by_email", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
-	}
-
-	return handleJSON(request)
-}
-
-func getUserByID(entry Payload) (jsonResponse, error) {
-	// create some json we'll send to the auth microservice
-	jsonData, err := json.MarshalIndent(entry.ID, "", "\t")
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
-	}
-
-	// call the service
-	request, err := http.NewRequest("POST", "http://authentication-service/get_by_id", bytes.NewBuffer(jsonData))
-	if err != nil {
-		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
-	}
-
-	return handleJSON(request)
-}
-
-func handleJSON(request *http.Request) (jsonResponse, error) {
+func handleSync(request *http.Request) (jsonResponse, error) {
 	request.Header.Set("Content-Type", "application/json")
 
 	client := &http.Client{}
