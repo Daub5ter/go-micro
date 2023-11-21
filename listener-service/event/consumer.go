@@ -23,15 +23,15 @@ type jsonResponse struct {
 }
 
 type Payload struct {
-	Action     string            `json:"action"`
-	Auth       AuthPayload       `json:"auth,omitempty"`
-	Reg        RegPayload        `json:"reg,omitempty"`
-	Update     UpdatePayload     `json:"update,omitempty"`
-	ChPassword ChPasswordPayload `json:"change_password,omitempty"`
-	Email      EmailPayload      `json:"get_by_email,omitempty"`
-	ID         IDPayload         `json:"get_by_id,omitempty"`
-	Log        LogPayload        `json:"log,omitempty"`
-	Mail       MailPayload       `json:"mail,omitempty"`
+	Action         string                `json:"action"`
+	Auth           AuthUserPayload       `json:"auth,omitempty"`
+	Reg            RegUserPayload        `json:"reg,omitempty"`
+	UpdateUser     UpdateUserPayload     `json:"update_user,omitempty"`
+	ChangePassword ChangePasswordPayload `json:"change_password,omitempty"`
+	Email          EmailPayload          `json:"email,omitempty"`
+	ID             IDPayload             `json:"id,omitempty"`
+	Log            LogPayload            `json:"log,omitempty"`
+	Mail           MailPayload           `json:"mail,omitempty"`
 }
 
 type MailPayload struct {
@@ -41,12 +41,12 @@ type MailPayload struct {
 	Message string `json:"message"`
 }
 
-type AuthPayload struct {
+type AuthUserPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type RegPayload struct {
+type RegUserPayload struct {
 	Email     string `json:"email"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
@@ -54,7 +54,7 @@ type RegPayload struct {
 	Active    int    `json:"active"`
 }
 
-type UpdatePayload struct {
+type UpdateUserPayload struct {
 	Email       string `json:"email"`
 	EmailChange string `json:"email_change"`
 	FirstName   string `json:"first_name,omitempty,omitempty"`
@@ -62,7 +62,7 @@ type UpdatePayload struct {
 	Active      int    `json:"active,omitempty"`
 }
 
-type ChPasswordPayload struct {
+type ChangePasswordPayload struct {
 	Email       string `json:"email"`
 	Password    string `json:"password"`
 	NewPassword string `json:"new_password"`
@@ -80,11 +80,6 @@ type LogPayload struct {
 	Name string `json:"name"`
 	Data string `json:"data"`
 }
-
-//type PayloadResponse struct {
-//	Error error  `json:"error"`
-//	Data  string `json:"data"`
-//}
 
 func NewConsumer(conn *amqp.Connection) (Consumer, error) {
 	consumer := Consumer{
@@ -126,13 +121,13 @@ func (consumer *Consumer) Listen() error {
 	if err = ch.QueueBind(q.Name, "mail", "mail", false, nil); err != nil {
 		return err
 	}
-	if err = ch.QueueBind(q.Name, "auth", "auth", false, nil); err != nil {
+	if err = ch.QueueBind(q.Name, "authenticate.user", "authenticate_user", false, nil); err != nil {
 		return err
 	}
-	if err = ch.QueueBind(q.Name, "get.by.email", "get_by_email", false, nil); err != nil {
+	if err = ch.QueueBind(q.Name, "get.user.by.email", "get_user_by_email", false, nil); err != nil {
 		return err
 	}
-	if err = ch.QueueBind(q.Name, "get.by.id", "get_by_id", false, nil); err != nil {
+	if err = ch.QueueBind(q.Name, "get.user.by.id", "get_user_by_id", false, nil); err != nil {
 		return err
 	}
 
@@ -197,21 +192,21 @@ func handlePayload(payload Payload) jsonResponse {
 			log.Println(err)
 		}
 
-	case "auth":
+	case "authenticate_user":
 		resp, err := auth(payload)
 		if err != nil {
 			log.Println(err)
 		}
 		response = resp
 
-	case "get_by_email":
+	case "get_user_by_email":
 		resp, err := getUserByEmail(payload)
 		if err != nil {
 			log.Println(err)
 		}
 		response = resp
 
-	case "get_by_id":
+	case "get_user_by_id":
 		resp, err := getUserByID(payload)
 		if err != nil {
 			log.Println(err)

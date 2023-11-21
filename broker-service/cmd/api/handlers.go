@@ -17,15 +17,15 @@ import (
 )
 
 type RequestPayload struct {
-	Action     string            `json:"action"`
-	Auth       AuthPayload       `json:"auth,omitempty"`
-	Reg        RegPayload        `json:"reg,omitempty"`
-	Update     UpdatePayload     `json:"update,omitempty"`
-	ChPassword ChPasswordPayload `json:"change_password,omitempty"`
-	Email      EmailPayload      `json:"get_by_email,omitempty"`
-	ID         IDPayload         `json:"get_by_id,omitempty"`
-	Log        LogPayload        `json:"log,omitempty"`
-	Mail       MailPayload       `json:"mail,omitempty"`
+	Action         string                `json:"action"`
+	Auth           AuthUserPayload       `json:"auth,omitempty"`
+	Reg            RegUserPayload        `json:"reg,omitempty"`
+	UpdateUser     UpdateUserPayload     `json:"update_user,omitempty"`
+	ChangePassword ChangePasswordPayload `json:"change_password,omitempty"`
+	Email          EmailPayload          `json:"email,omitempty"`
+	ID             IDPayload             `json:"id,omitempty"`
+	Log            LogPayload            `json:"log,omitempty"`
+	Mail           MailPayload           `json:"mail,omitempty"`
 }
 
 type MailPayload struct {
@@ -35,12 +35,12 @@ type MailPayload struct {
 	Message string `json:"message"`
 }
 
-type AuthPayload struct {
+type AuthUserPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type RegPayload struct {
+type RegUserPayload struct {
 	Email     string `json:"email"`
 	FirstName string `json:"first_name,omitempty"`
 	LastName  string `json:"last_name,omitempty"`
@@ -48,7 +48,7 @@ type RegPayload struct {
 	Active    int    `json:"active"`
 }
 
-type UpdatePayload struct {
+type UpdateUserPayload struct {
 	Email       string `json:"email"`
 	EmailChange string `json:"email_change"`
 	FirstName   string `json:"first_name,omitempty,omitempty"`
@@ -56,7 +56,7 @@ type UpdatePayload struct {
 	Active      int    `json:"active,omitempty"`
 }
 
-type ChPasswordPayload struct {
+type ChangePasswordPayload struct {
 	Email       string `json:"email"`
 	Password    string `json:"password"`
 	NewPassword string `json:"new_password"`
@@ -96,24 +96,24 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	}
 
 	switch requestPayload.Action {
-	case "auth":
-		app.authEventViaRabbit(w, requestPayload.Auth)
-	case "reg":
-		app.registrate(w, requestPayload.Reg)
-	case "update":
-		app.update(w, requestPayload.Update)
-	case "change_password":
-		app.changePassword(w, requestPayload.ChPassword)
-	case "get_all":
-		app.getAll(w)
-	case "get_by_email":
-		app.getByEmailViaRabbit(w, requestPayload.Email)
-	case "get_by_id":
-		app.getByIDViaRabbit(w, requestPayload.ID)
-	case "get_by_email_delete":
-		app.getByEmailDelete(w, requestPayload.Email)
-	case "get_by_id_delete":
-		app.getByIDDelete(w, requestPayload.ID)
+	case "authenticate_user":
+		app.authenticateUserViaRabbit(w, requestPayload.Auth)
+	case "registrate_user":
+		app.registrateUser(w, requestPayload.Reg)
+	case "update_user":
+		app.updateUser(w, requestPayload.UpdateUser)
+	case "change_password_user":
+		app.changePassword(w, requestPayload.ChangePassword)
+	case "get_all_users":
+		app.getAllUsers(w)
+	case "get_user_by_email":
+		app.getUserByEmailViaRabbit(w, requestPayload.Email)
+	case "get_user_by_id":
+		app.getUserByIDViaRabbit(w, requestPayload.ID)
+	case "delete_user_by_email":
+		app.getUserByEmailDelete(w, requestPayload.Email)
+	case "delete_user_by_id":
+		app.getUserByIDDelete(w, requestPayload.ID)
 	case "log":
 		app.logEventViaRabbit(w, requestPayload.Log)
 	case "mail":
@@ -125,7 +125,7 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 }
 
 // calls the authentication microservice and sends back the appropriate response
-func (app *Config) authenticate(w http.ResponseWriter, a AuthPayload) {
+func (app *Config) authenticateUser(w http.ResponseWriter, a AuthUserPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(a, "", "\t")
 
@@ -176,7 +176,7 @@ func (app *Config) authenticate(w http.ResponseWriter, a AuthPayload) {
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
-func (app *Config) update(w http.ResponseWriter, u UpdatePayload) {
+func (app *Config) updateUser(w http.ResponseWriter, u UpdateUserPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(u, "", "\t")
 
@@ -227,7 +227,7 @@ func (app *Config) update(w http.ResponseWriter, u UpdatePayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) changePassword(w http.ResponseWriter, cp ChPasswordPayload) {
+func (app *Config) changePassword(w http.ResponseWriter, cp ChangePasswordPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(cp, "", "\t")
 
@@ -278,7 +278,7 @@ func (app *Config) changePassword(w http.ResponseWriter, cp ChPasswordPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) getAll(w http.ResponseWriter) {
+func (app *Config) getAllUsers(w http.ResponseWriter) {
 	// call the service
 	request, err := http.NewRequest("GET", "http://authentication-service/get_all", nil)
 	if err != nil {
@@ -326,7 +326,7 @@ func (app *Config) getAll(w http.ResponseWriter) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) getByEmail(w http.ResponseWriter, e EmailPayload) {
+func (app *Config) getUserByEmail(w http.ResponseWriter, e EmailPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(e, "", "\t")
 
@@ -377,7 +377,7 @@ func (app *Config) getByEmail(w http.ResponseWriter, e EmailPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) getByID(w http.ResponseWriter, i IDPayload) {
+func (app *Config) getUserByID(w http.ResponseWriter, i IDPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(i, "", "\t")
 
@@ -428,7 +428,7 @@ func (app *Config) getByID(w http.ResponseWriter, i IDPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) getByEmailDelete(w http.ResponseWriter, e EmailPayload) {
+func (app *Config) getUserByEmailDelete(w http.ResponseWriter, e EmailPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(e, "", "\t")
 
@@ -479,7 +479,7 @@ func (app *Config) getByEmailDelete(w http.ResponseWriter, e EmailPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) getByIDDelete(w http.ResponseWriter, i IDPayload) {
+func (app *Config) getUserByIDDelete(w http.ResponseWriter, i IDPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(i, "", "\t")
 
@@ -530,7 +530,7 @@ func (app *Config) getByIDDelete(w http.ResponseWriter, i IDPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) registrate(w http.ResponseWriter, r RegPayload) {
+func (app *Config) registrateUser(w http.ResponseWriter, r RegUserPayload) {
 	// create some json we'll send to the auth microservice
 	jsonData, _ := json.MarshalIndent(r, "", "\t")
 
@@ -658,12 +658,11 @@ func (app *Config) sendMail(w http.ResponseWriter, msg MailPayload) {
 }
 
 func (app *Config) sendMailViaRabbit(w http.ResponseWriter, msg MailPayload) {
-	var name = "mail"
 	var requestPayload RequestPayload
 	requestPayload.Action = "mail"
 	requestPayload.Mail = msg
 
-	_, err := app.pushToQueue(name, requestPayload)
+	_, err := app.pushToQueue(requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -677,12 +676,11 @@ func (app *Config) sendMailViaRabbit(w http.ResponseWriter, msg MailPayload) {
 }
 
 func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
-	var name = "log"
 	var requestPayload RequestPayload
 	requestPayload.Action = "log"
 	requestPayload.Log = l
 
-	_, err := app.pushToQueue(name, requestPayload)
+	_, err := app.pushToQueue(requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -695,14 +693,13 @@ func (app *Config) logEventViaRabbit(w http.ResponseWriter, l LogPayload) {
 	app.writeJSON(w, http.StatusAccepted, payload)
 }
 
-func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
-	var name = "auth"
+func (app *Config) authenticateUserViaRabbit(w http.ResponseWriter, a AuthUserPayload) {
 	var requestPayload RequestPayload
 
-	requestPayload.Action = "auth"
+	requestPayload.Action = "authenticate_user"
 	requestPayload.Auth = a
 
-	response, err := app.pushToQueue(name, requestPayload)
+	response, err := app.pushToQueue(requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -719,14 +716,13 @@ func (app *Config) authEventViaRabbit(w http.ResponseWriter, a AuthPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) getByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
-	var name = "get_by_email"
+func (app *Config) getUserByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
 	var requestPayload RequestPayload
 
-	requestPayload.Action = "get_by_email"
+	requestPayload.Action = "get_user_by_email"
 	requestPayload.Email = e
 
-	response, err := app.pushToQueue(name, requestPayload)
+	response, err := app.pushToQueue(requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -743,14 +739,13 @@ func (app *Config) getByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) getByIDViaRabbit(w http.ResponseWriter, i IDPayload) {
-	var name = "get_by_id"
+func (app *Config) getUserByIDViaRabbit(w http.ResponseWriter, i IDPayload) {
 	var requestPayload RequestPayload
 
-	requestPayload.Action = "get_by_id"
+	requestPayload.Action = "get_user_by_id"
 	requestPayload.ID = i
 
-	response, err := app.pushToQueue(name, requestPayload)
+	response, err := app.pushToQueue(requestPayload)
 	if err != nil {
 		app.errorJSON(w, err)
 		return
@@ -767,10 +762,10 @@ func (app *Config) getByIDViaRabbit(w http.ResponseWriter, i IDPayload) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) pushToQueue(name string, payload RequestPayload) ([]byte, error) {
+func (app *Config) pushToQueue(payload RequestPayload) ([]byte, error) {
 	var response []byte
 
-	emitter, err := event.NewEventEmitter(name, app.Rabbit)
+	emitter, err := event.NewEventEmitter(payload.Action, app.Rabbit)
 	if err != nil {
 		return nil, err
 	}
@@ -779,19 +774,19 @@ func (app *Config) pushToQueue(name string, payload RequestPayload) ([]byte, err
 
 	j, _ = json.MarshalIndent(&payload, "", "\t")
 
-	switch name {
+	switch payload.Action {
 	case "log":
-		err = emitter.Push(string(j), name, "log")
+		err = emitter.Push(string(j), payload.Action, "log")
 	case "mail":
-		err = emitter.Push(string(j), name, "mail")
-	case "auth":
-		response, err = emitter.PushWithResponse(string(j), name, "auth")
-	case "get_by_email":
-		response, err = emitter.PushWithResponse(string(j), name, "get.by.email")
-	case "get_by_id":
-		response, err = emitter.PushWithResponse(string(j), name, "get.by.id")
+		err = emitter.Push(string(j), payload.Action, "mail")
+	case "authenticate_user":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "authenticate.user")
+	case "get_user_by_email":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "get.user.by.email")
+	case "get_user_by_id":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "get.user.by.id")
 	default:
-		log.Printf("invalid name of channel RabbitMQ %s", name)
+		log.Printf("invalid name of channel RabbitMQ %s", payload.Action)
 	}
 
 	if err != nil {

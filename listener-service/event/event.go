@@ -11,13 +11,13 @@ func declareExchange(ch *amqp.Channel) error {
 	if err := ch.ExchangeDeclare("mail", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
-	if err := ch.ExchangeDeclare("auth", "topic", true, false, false, false, nil); err != nil {
+	if err := ch.ExchangeDeclare("authenticate_user", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
-	if err := ch.ExchangeDeclare("get_by_email", "topic", true, false, false, false, nil); err != nil {
+	if err := ch.ExchangeDeclare("get_user_by_email", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
-	if err := ch.ExchangeDeclare("get_by_id", "topic", true, false, false, false, nil); err != nil {
+	if err := ch.ExchangeDeclare("get_user_by_id", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
 

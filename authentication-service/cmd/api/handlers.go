@@ -22,6 +22,8 @@ func (app *Config) GetByEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	log.Println("email", requestPayload)
+
 	// get user form database
 	user, err := app.Models.User.GetByEmail(requestPayload.Email)
 	if err != nil {
@@ -155,6 +157,8 @@ func (app *Config) GetByID(w http.ResponseWriter, r *http.Request) {
 		app.errorJSON(w, err, http.StatusBadRequest)
 		return
 	}
+
+	log.Println("id", requestPayload)
 
 	// validate the user against the database
 	user, err := app.Models.User.GetOne(requestPayload.ID)

@@ -263,7 +263,7 @@
     getAllBrokerBtn.addEventListener("click", function() {
 
         const payload = {
-            action: "get_all",
+            action: "get_all_users",
         }
 
         const headers = new Headers();
@@ -294,7 +294,7 @@
     authBrokerBtn.addEventListener("click", function() {
 
         const payload = {
-            action: "auth",
+            action: "authenticate_user",
             auth: {
                 email: "mark@test.com",
                 password: "12345",
@@ -352,8 +352,8 @@
         var email = document.getElementById("InputEmail").value;
 
         const payload = {
-            action: "get_by_email",
-            get_by_email: {
+            action: "get_user_by_email",
+            email: {
                 email: email,
             }
         }
@@ -387,8 +387,8 @@
         let id = document.getElementById("InputID").value;
 
         const payload = {
-            action: "get_by_id",
-            get_by_id: {
+            action: "get_user_by_id",
+            id: {
                 id: Number(id),
             }
         }
@@ -422,7 +422,7 @@
         let email = document.getElementById("InputEmailDelete").value;
 
         const payload = {
-            action: "get_by_email_delete",
+            action: "delete_user_by_email",
             get_by_email: {
                 email: email,
             }
@@ -457,7 +457,7 @@
         let id = document.getElementById("InputIDDelete").value;
 
         const payload = {
-            action: "get_by_id_delete",
+            action: "delete_user_by_id",
             get_by_id: {
                 id: Number(id),
             }
@@ -500,8 +500,8 @@
         let active = document.getElementById("active").value;
 
         const payload = {
-            action: "update",
-            update: {
+            action: "update_user",
+            update_user: {
                 email: email,
                 email_change: newEmail,
                 first_name: firstName,
@@ -548,7 +548,7 @@
         let active = document.getElementById("active-registrate").value;
 
         const payload = {
-            action: "reg",
+            action: "registrate_user",
             reg: {
                 email: email,
                 first_name: firstName,
