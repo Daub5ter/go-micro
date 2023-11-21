@@ -126,9 +126,9 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "get_user_by_id":
 		app.getUserByIDViaRabbit(w, requestPayload.ID)
 	case "delete_user_by_email":
-		app.deleteUserByEmail(w, requestPayload.Email)
+		app.deleteUserByEmailViaRabbit(w, requestPayload.Email)
 	case "delete_user_by_id":
-		app.deleteUserByID(w, requestPayload.ID)
+		app.deleteUserByIDViaRabbit(w, requestPayload.ID)
 	case "log":
 		app.logEventViaRabbit(w, requestPayload.Log)
 	case "mail":
@@ -886,6 +886,54 @@ func (app *Config) changePasswordViaRabbit(w http.ResponseWriter, cp ChangePassw
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// deleteUserByEmailViaRabbit deletes user by email via RabbitMQ
+func (app *Config) deleteUserByEmailViaRabbit(w http.ResponseWriter, e EmailPayload) {
+	var requestPayload RequestPayload
+
+	requestPayload.Action = "delete_user_by_email"
+	requestPayload.Email = e
+
+	response, err := app.pushToQueue(requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
+// deleteUserByIDViaRabbit deletes user by ID via RabbitMQ
+func (app *Config) deleteUserByIDViaRabbit(w http.ResponseWriter, i IDPayload) {
+	var requestPayload RequestPayload
+
+	requestPayload.Action = "delete_user_by_id"
+	requestPayload.ID = i
+
+	response, err := app.pushToQueue(requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
 // pushToQueue pushes request to queue of RabbitMQ
 func (app *Config) pushToQueue(payload RequestPayload) ([]byte, error) {
 	var response []byte
@@ -918,6 +966,10 @@ func (app *Config) pushToQueue(payload RequestPayload) ([]byte, error) {
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "update.user")
 	case "change_password":
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "change.password")
+	case "delete_user_by_email":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "delete.user.by.email")
+	case "delete_user_by_id":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "delete.user.by.id")
 	default:
 		log.Printf("invalid name of channel RabbitMQ %s", payload.Action)
 	}

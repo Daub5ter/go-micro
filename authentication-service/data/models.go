@@ -313,3 +313,22 @@ func (u *User) PasswordMatches(plainText string) (bool, error) {
 
 	return true, nil
 }
+
+func (u *User) CheckUserExists(email string) (bool, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	var exists bool
+
+	query := `select exists(select email from users where email = $1)`
+
+	row := db.QueryRowContext(ctx, query, email)
+	err := row.Scan(exists)
+	if err != nil {
+		return exists, err
+	}
+
+	log.Println(exists)
+
+	return exists, nil
+}

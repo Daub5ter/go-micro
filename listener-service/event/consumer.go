@@ -152,6 +152,12 @@ func (consumer *Consumer) Listen() error {
 	if err = ch.QueueBind(q.Name, "change.password", "change_password", false, nil); err != nil {
 		return err
 	}
+	if err = ch.QueueBind(q.Name, "delete.user.by.email", "delete_user_by_email", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "delete.user.by.id", "delete_user_by_id", false, nil); err != nil {
+		return err
+	}
 
 	messages, err := ch.Consume(q.Name, "", true, false, false, false, nil)
 	if err != nil {
@@ -167,7 +173,6 @@ func (consumer *Consumer) Listen() error {
 				log.Println(err)
 			}
 
-			// go handlePayload(payload)
 			response := handlePayload(payload)
 
 			jsonResp, err := json.MarshalIndent(response, "", "\t")
@@ -259,6 +264,20 @@ func handlePayload(payload Payload) jsonResponse {
 
 	case "change_password":
 		resp, err := changePassword(payload)
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
+	case "delete_user_by_email":
+		resp, err := deleteUserByEmail(payload)
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
+	case "delete_user_by_id":
+		resp, err := deleteUserByID(payload)
 		if err != nil {
 			log.Println(err)
 		}
@@ -405,6 +424,40 @@ func changePassword(entry Payload) (jsonResponse, error) {
 
 	// call the service
 	request, err := http.NewRequest("PUT", "http://authentication-service/change_password", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request, http.StatusOK)
+}
+
+// deleteUserByEmail delete user by email via RabbitMQ
+func deleteUserByEmail(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.Email, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("DELETE", "http://authentication-service/delete_by_email", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request, http.StatusOK)
+}
+
+// deleteUserByID delete user by ID via RabbitMQ
+func deleteUserByID(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.ID, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("DELETE", "http://authentication-service/delete_by_id", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}
