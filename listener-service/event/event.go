@@ -17,10 +17,12 @@ func declareExchange(ch *amqp.Channel) error {
 	if err := ch.ExchangeDeclare("get_by_id", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func declareRandomQueue(ch *amqp.Channel) (amqp.Queue, error) {
+
 	return ch.QueueDeclare(
 		"",
 		false,

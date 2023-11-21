@@ -108,6 +108,34 @@ func (u *User) GetByEmail(email string) (*User, error) {
 	return &user, nil
 }
 
+// GetByEmailWithPassword returns one user by email with password
+func (u *User) GetByEmailWithPassword(email string) (*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	query := `select id, email, first_name, last_name, password, user_active, created_at, updated_at from users where email = $1`
+
+	var user User
+	row := db.QueryRowContext(ctx, query, email)
+
+	err := row.Scan(
+		&user.ID,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.Password,
+		&user.Active,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
 // GetOne returns one user by id
 func (u *User) GetOne(id int) (*User, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
@@ -123,6 +151,34 @@ func (u *User) GetOne(id int) (*User, error) {
 		&user.Email,
 		&user.FirstName,
 		&user.LastName,
+		&user.Active,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+
+// GetOneWithPassword returns one user by id with password
+func (u *User) GetOneWithPassword(id int) (*User, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
+	defer cancel()
+
+	query := `select id, email, first_name, last_name, password, user_active, created_at, updated_at from users where id = $1`
+
+	var user User
+	row := db.QueryRowContext(ctx, query, id)
+
+	err := row.Scan(
+		&user.ID,
+		&user.Email,
+		&user.FirstName,
+		&user.LastName,
+		&user.Password,
 		&user.Active,
 		&user.CreatedAt,
 		&user.UpdatedAt,

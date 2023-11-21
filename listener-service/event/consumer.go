@@ -183,14 +183,12 @@ func handlePayload(payload Payload) jsonResponse {
 
 	switch payload.Action {
 	case "log":
-		// log whatever we get
 		err := logEvent(payload)
 		if err != nil {
 			log.Println(err)
 		}
 
 	case "auth":
-		// authenticate
 		resp, err := auth(payload)
 		if err != nil {
 			log.Println(err)

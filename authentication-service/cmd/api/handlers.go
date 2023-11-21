@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 func (app *Config) GetByEmail(w http.ResponseWriter, r *http.Request) {
@@ -29,11 +30,7 @@ func (app *Config) GetByEmail(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log getByEmail
-	err = app.logRequest("receive user", fmt.Sprintf("%s received", user.Email))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("receive user", fmt.Sprintf("%s received", user.Email))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -61,11 +58,7 @@ func (app *Config) Registrate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log registrate
-	err = app.logRequest("registrated", fmt.Sprintf("%s registrated in", requestPayload.Email))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("registrated", fmt.Sprintf("%s registrated in", requestPayload.Email))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -85,11 +78,7 @@ func (app *Config) GetAll(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log getAll
-	err = app.logRequest("receive users", fmt.Sprintf("received %v users", len(users)))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("receive users", fmt.Sprintf("received %v users", len(users)))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -113,7 +102,7 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// validate the user against the database
-	user, err := app.Models.User.GetByEmail(requestPayload.Email)
+	user, err := app.Models.User.GetByEmailWithPassword(requestPayload.Email)
 	if err != nil {
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
@@ -126,16 +115,31 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log authentication
-	err = app.logRequest("authentication", fmt.Sprintf("%s logged in", user.Email))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("authentication", fmt.Sprintf("%s logged in", user.Email))
+
+	// structure for response without password
+	u := struct {
+		ID        int       `json:"id"`
+		Email     string    `json:"email"`
+		FirstName string    `json:"first_name,omitempty"`
+		LastName  string    `json:"last_name,omitempty"`
+		Active    int       `json:"active"`
+		CreatedAt time.Time `json:"created_at"`
+		UpdatedAt time.Time `json:"updated_at"`
+	}{}
+
+	u.ID = user.ID
+	u.Email = user.Email
+	u.FirstName = user.FirstName
+	u.LastName = user.LastName
+	u.Active = user.Active
+	u.CreatedAt = user.CreatedAt
+	u.UpdatedAt = user.UpdatedAt
 
 	payload := jsonResponse{
 		Error:   false,
-		Message: fmt.Sprintf("Logged in user %s", user.Email),
-		Data:    user,
+		Message: fmt.Sprintf("Logged in user %s", u.Email),
+		Data:    u,
 	}
 
 	app.writeJSON(w, http.StatusOK, payload)
@@ -160,11 +164,7 @@ func (app *Config) GetByID(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log getByID
-	err = app.logRequest("receive user", fmt.Sprintf("%s received", user.Email))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("receive user", fmt.Sprintf("%s received", user.Email))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -219,11 +219,7 @@ func (app *Config) Update(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log update
-	err = app.logRequest("update", fmt.Sprintf("%s updated, now %s", requestPayload.Email, user.Email))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("update", fmt.Sprintf("%s updated, now %s", requestPayload.Email, user.Email))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -248,14 +244,11 @@ func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// get user from database
-	user, err := app.Models.User.GetByEmail(requestPayload.Email)
+	user, err := app.Models.User.GetByEmailWithPassword(requestPayload.Email)
 	if err != nil {
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
 	}
-
-	log.Println("user", user)
-	log.Println("requestPayload", requestPayload.Password)
 
 	// check user`s password
 	valid, err := user.PasswordMatches(requestPayload.Password)
@@ -263,8 +256,6 @@ func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		app.errorJSON(w, errors.New("invalid credentials"), http.StatusBadRequest)
 		return
 	}
-
-	log.Println("valid", valid)
 
 	// update user`s password
 	err = user.ResetPassword(requestPayload.NewPassword)
@@ -274,11 +265,7 @@ func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log update
-	err = app.logRequest("change password", fmt.Sprintf("%s changed password", requestPayload.Email))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("change password", fmt.Sprintf("%s changed password", requestPayload.Email))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -314,11 +301,7 @@ func (app *Config) GetByEmailDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log getByEmail
-	err = app.logRequest("delete user", fmt.Sprintf("%s deleted", requestPayload.Email))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("delete user", fmt.Sprintf("%s deleted", requestPayload.Email))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -348,11 +331,7 @@ func (app *Config) GetByIDDelete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// log getByID
-	err = app.logRequest("delete user", fmt.Sprintf("user with id %s deleted", requestPayload.ID))
-	if err != nil {
-		app.errorJSON(w, err)
-		return
-	}
+	go app.logRequest("delete user", fmt.Sprintf("user with id %s deleted", requestPayload.ID))
 
 	payload := jsonResponse{
 		Error:   false,
@@ -363,7 +342,7 @@ func (app *Config) GetByIDDelete(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-func (app *Config) logRequest(name, data string) error {
+func (app *Config) logRequest(name, data string) {
 	var entry struct {
 		Name string `json:"name"`
 		Data string `json:"data"`
@@ -377,14 +356,12 @@ func (app *Config) logRequest(name, data string) error {
 
 	request, err := http.NewRequest("POST", logServiceURL, bytes.NewBuffer(jsonData))
 	if err != nil {
-		return err
+		log.Println(err)
 	}
 
 	client := &http.Client{}
 	_, err = client.Do(request)
 	if err != nil {
-		return err
+		log.Println(err)
 	}
-
-	return nil
 }
