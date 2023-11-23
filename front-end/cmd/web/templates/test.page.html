@@ -6,7 +6,7 @@
         <div class="col">
             <h4 class="mt-5">Your email</h4>
             <div class="mt-1">
-                <pre id="login-output"><span class="text-muted">You dont logined</span></pre>
+                <pre id="login-output"><span class="text-muted">You dont login</span></pre>
                 <button type="button" onclick="logOut();">Log out</button>
             </div>
 
@@ -166,7 +166,15 @@
     let received = document.getElementById("received");
     let loginOutput = document.getElementById("login-output")
 
-    document.getElementById("login").addEventListener("submit", checkFormLogin)
+    const emailUser = localStorage.getItem("email");
+    if (emailUser === null) {
+        loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`
+    } else {
+        loginOutput.innerHTML = `<span class="text-muted">${emailUser}</span>`;
+    }
+
+
+    document.getElementById("login").addEventListener("submit", checkFormLogin);
 
     function checkFormLogin(event) {
         event.preventDefault();
@@ -200,7 +208,7 @@
                     output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
                 } else {
                     output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
-                    loginOutput.innerHTML = `<h4>${data.data.email}</h4>`;
+                    loginOutput.innerHTML = `<span class="text-muted">${data.data.email}</span>`;
                     localStorage.setItem('email', data.data.email);
                 }
             })
@@ -211,7 +219,7 @@
 
     function logOut() {
         localStorage.removeItem('email');
-        loginOutput.innerHTML = `<h4>You logged out</h4>`;
+        loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`;
     }
 
     mailBtn.addEventListener("click", function() {
