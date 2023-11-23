@@ -7,6 +7,8 @@
             <h4 class="mt-5">Your email</h4>
             <div class="mt-1">
                 <pre id="login-output"><span class="text-muted">You dont login</span></pre>
+                <pre id="first-name-output"><span class="text-muted"></span></pre>
+                <pre id="last-name-output"><span class="text-muted"></span></pre>
                 <button type="button" onclick="logOut();">Log out</button>
             </div>
 
@@ -164,15 +166,54 @@
     let output = document.getElementById("output");
     let sent = document.getElementById("payload");
     let received = document.getElementById("received");
+
     let loginOutput = document.getElementById("login-output")
+    let firstNameOutput = document.getElementById("first-name-output")
+    let lastNameOutput = document.getElementById("last-name-output")
+
+    let currentTime = new Date();
+    let timeCancelSessionString = localStorage.getItem("time_session");
+    const timeCancelSession = new Date(timeCancelSessionString);
+    if (timeCancelSession < currentTime) {
+        logOut();
+    }
 
     const emailUser = localStorage.getItem("email");
     if (emailUser === null) {
         loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`
     } else {
         loginOutput.innerHTML = `<span class="text-muted">${emailUser}</span>`;
-    }
 
+        const payload = {
+            action: "get_user_by_email",
+            email: {
+                email: emailUser,
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                if (data.error) {
+                    console.log("Error to fetch auth user function")
+                } else {
+                    firstNameOutput.innerHTML = `<span class="text-muted">${data.data.first_name}</span>`
+                    lastNameOutput.innerHTML = `<span class="text-muted">${data.data.last_name}</span>`
+                }
+            })
+            .catch((error) => {
+                console.log(error)
+            })
+    }
 
     document.getElementById("login").addEventListener("submit", checkFormLogin);
 
@@ -209,7 +250,16 @@
                 } else {
                     output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
                     loginOutput.innerHTML = `<span class="text-muted">${data.data.email}</span>`;
+                    firstNameOutput.innerHTML = `<span class="text-muted">${data.data.first_name}</span>`;
+                    lastNameOutput.innerHTML = `<span class="text-muted">${data.data.last_name}</span>`;
+
+                    // 1 час
+                    let currentTime = new Date();
+                    let futureTime = new Date(currentTime.getTime() + (60 * 60 * 1000));
+                    let futureTimeString = futureTime.toISOString();
+
                     localStorage.setItem('email', data.data.email);
+                    localStorage.setItem('time_session', futureTimeString)
                 }
             })
             .catch((error) => {
@@ -219,7 +269,11 @@
 
     function logOut() {
         localStorage.removeItem('email');
+        localStorage.removeItem('time_session');
+
         loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`;
+        firstNameOutput.innerHTML = `<span class="text-muted"></span>`;
+        lastNameOutput.innerHTML = `<span class="text-muted"></span>`;
     }
 
     mailBtn.addEventListener("click", function() {
