@@ -4,6 +4,26 @@
 <div class="container">
     <div class="row">
         <div class="col">
+            <h4 class="mt-5">Your email</h4>
+            <div class="mt-1">
+                <pre id="login-output"><span class="text-muted">You dont logined</span></pre>
+                <button type="button" onclick="logOut();">Log out</button>
+            </div>
+
+            <h1 class="mt-5">Login</h1>
+            <hr>
+            <form method="post" id="login" class="mt-2">
+                <div class="mt-2">
+                    <label for="login-email">E-mail</label>
+                    <input type="text" placeholder="Type email" id="login-email">
+                </div>
+                <div class="mt-2">
+                    <label for="login-password">Password</label>
+                    <input type="text" placeholder="Type password" id="login-password">
+                </div>
+                <button type="submit">Отправить</button>
+            </form>
+
             <h1 class="mt-5">Create user</h1>
             <hr>
             <form method="post" id="main-form-registration" class="mt-2">
@@ -22,10 +42,6 @@
                 <div class="mt-2">
                     <label for="password-registration">Password</label>
                     <input type="password" name="password-registration" id="password-registration">
-                </div>
-                <div class="mt-2">
-                    <label for="repassword-registration">Repeat password</label>
-                    <input type="password" name="repassword-registration" id="repassword-registration">
                 </div>
                 <div class="mt-2">
                     <label for="active-registration">Активность</label>
@@ -148,6 +164,55 @@
     let output = document.getElementById("output");
     let sent = document.getElementById("payload");
     let received = document.getElementById("received");
+    let loginOutput = document.getElementById("login-output")
+
+    document.getElementById("login").addEventListener("submit", checkFormLogin)
+
+    function checkFormLogin(event) {
+        event.preventDefault();
+
+        let email = document.getElementById("login-email").value;
+        let password = document.getElementById("login-password").value;
+
+        const payload = {
+            action: "authenticate_user",
+            auth: {
+                email: email,
+                password: password,
+            }
+        }
+
+        const headers = new Headers();
+        headers.append("Content-Type", "application/json");
+
+        const body = {
+            method: 'POST',
+            body: JSON.stringify(payload),
+            headers: headers,
+        }
+
+        fetch("http:\/\/localhost:8080/handle", body)
+            .then((response) => response.json())
+            .then((data) => {
+                sent.innerHTML = JSON.stringify(payload, undefined, 4);
+                received.innerHTML = JSON.stringify(data, undefined, 4);
+                if (data.error) {
+                    output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
+                } else {
+                    output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
+                    loginOutput.innerHTML = `<h4>${data.data.email}</h4>`;
+                    localStorage.setItem('email', data.data.email);
+                }
+            })
+            .catch((error) => {
+                output.innerHTML += "<br><br>Error: " + error;
+            })
+    }
+
+    function logOut() {
+        localStorage.removeItem('email');
+        loginOutput.innerHTML = `<h4>You logged out</h4>`;
+    }
 
     mailBtn.addEventListener("click", function() {
 
@@ -349,7 +414,7 @@
     })
 
     function getInputValueEmail(){
-        var email = document.getElementById("InputEmail").value;
+        let email = document.getElementById("InputEmail").value;
 
         const payload = {
             action: "get_user_by_email",
@@ -544,7 +609,6 @@
         let firstName = document.getElementById("first-name-registration").value;
         let lastName = document.getElementById("last-name-registration").value;
         let password = document.getElementById("password-registration").value;
-        let repassword = document.getElementById("repassword-registration").value;
         let active = document.getElementById("active-registration").value;
 
         const payload = {
