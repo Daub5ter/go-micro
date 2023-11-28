@@ -20,6 +20,7 @@ import (
 type RequestPayload struct {
 	Action         string                `json:"action"`
 	Auth           AuthUserPayload       `json:"auth,omitempty"`
+	Session        SessionTokenPayload   `json:"session,omitempty"`
 	Reg            RegUserPayload        `json:"reg,omitempty"`
 	UpdateUser     UpdateUserPayload     `json:"update_user,omitempty"`
 	ChangePassword ChangePasswordPayload `json:"change_password,omitempty"`
@@ -41,6 +42,11 @@ type MailPayload struct {
 type AuthUserPayload struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
+}
+
+// SessionTokenPayload stores token of user`s session
+type SessionTokenPayload struct {
+	SessionToken string `json:"session_token"`
 }
 
 // RegUserPayload stores data to registration user
@@ -113,6 +119,8 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	switch requestPayload.Action {
 	case "authenticate_user":
 		app.authenticateUserViaRabbit(w, requestPayload.Auth)
+	case "authenticate_user_session":
+		app.authenticateUserSession(w, requestPayload.Session)
 	case "registration_user":
 		app.registrationUserViaRabbit(w, requestPayload.Reg)
 	case "update_user":
@@ -189,6 +197,58 @@ func (app *Config) authenticateUser(w http.ResponseWriter, a AuthUserPayload) {
 	payload.Data = jsonFromService.Data
 
 	app.writeJSON(w, http.StatusAccepted, payload)
+}
+
+// authenticateUserSession auths user if session is valid
+func (app *Config) authenticateUserSession(w http.ResponseWriter, st SessionTokenPayload) {
+	// create some json we'll send to the auth microservice
+	jsonData, _ := json.MarshalIndent(st, "", "\t")
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/authenticate_session", bytes.NewBuffer(jsonData))
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	client := &http.Client{}
+	response, err := client.Do(request)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+	defer response.Body.Close()
+
+	// make sure we get back the correct status code
+	if response.StatusCode == http.StatusUnauthorized {
+		app.errorJSON(w, errors.New("invalid credentials"))
+		return
+	} else if response.StatusCode != http.StatusOK {
+		app.errorJSON(w, errors.New("error calling auth service"))
+		return
+	}
+
+	// create a variable we'll read response.Body into
+	var jsonFromService jsonResponse
+
+	// decode the json from the auth service
+	err = json.NewDecoder(response.Body).Decode(&jsonFromService)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	if jsonFromService.Error {
+		app.errorJSON(w, err, http.StatusOK)
+		return
+	}
+
+	var payload jsonResponse
+	payload.Error = false
+	payload.Message = "Session is valid"
+	payload.Data = jsonFromService.Data
+
+	app.writeJSON(w, http.StatusOK, payload)
 }
 
 // updateUser updates user`s fields

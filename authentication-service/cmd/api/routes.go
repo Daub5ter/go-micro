@@ -27,6 +27,7 @@ func (app *Config) routes() http.Handler {
 	mux.Put("/update", app.Update)
 	mux.Put("/change_password", app.ChangePassword)
 	mux.Post("/authenticate", app.Authenticate)
+	mux.Post("/authenticate_session", app.AuthenticateSession)
 	mux.Post("/registration", app.Registration)
 	mux.Post("/get_by_email", app.GetByEmail)
 	mux.Post("/get_by_id", app.GetByID)

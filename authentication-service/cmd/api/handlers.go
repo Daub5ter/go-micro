@@ -118,18 +118,25 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	jwtToken, err := app.Models.UserJWT.CreateJWTToken(requestPayload.Email)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
 	// log authentication
 	go app.logRequest("authentication", fmt.Sprintf("%s logged in", user.Email))
 
 	// structure for response without password
 	u := struct {
-		ID        int       `json:"id"`
-		Email     string    `json:"email"`
-		FirstName string    `json:"first_name,omitempty"`
-		LastName  string    `json:"last_name,omitempty"`
-		Active    int       `json:"active"`
-		CreatedAt time.Time `json:"created_at"`
-		UpdatedAt time.Time `json:"updated_at"`
+		ID           int       `json:"id"`
+		Email        string    `json:"email"`
+		FirstName    string    `json:"first_name,omitempty"`
+		LastName     string    `json:"last_name,omitempty"`
+		Active       int       `json:"active"`
+		CreatedAt    time.Time `json:"created_at"`
+		UpdatedAt    time.Time `json:"updated_at"`
+		SessionToken string    `json:"session_token"`
 	}{}
 
 	u.ID = user.ID
@@ -139,6 +146,7 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	u.Active = user.Active
 	u.CreatedAt = user.CreatedAt
 	u.UpdatedAt = user.UpdatedAt
+	u.SessionToken = jwtToken
 
 	payload := jsonResponse{
 		Error:   false,
@@ -351,8 +359,8 @@ func (app *Config) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
-// CheckSession checks valid or not session of user
-func (app *Config) CheckSession(w http.ResponseWriter, r *http.Request) {
+// AuthenticateSession checks valid or not session of user
+func (app *Config) AuthenticateSession(w http.ResponseWriter, r *http.Request) {
 	var requestPayload struct {
 		SessionToken string `json:"session_token"`
 	}
@@ -376,36 +384,6 @@ func (app *Config) CheckSession(w http.ResponseWriter, r *http.Request) {
 		Error:   false,
 		Message: fmt.Sprintf("session is valid"),
 		Data:    email,
-	}
-
-	app.writeJSON(w, http.StatusOK, payload)
-}
-
-// CreateSession creates new session of user
-func (app *Config) CreateSession(w http.ResponseWriter, r *http.Request) {
-	var requestPayload struct {
-		Email string `json:"email"`
-	}
-
-	err := app.readJSON(w, r, &requestPayload)
-	if err != nil {
-		app.errorJSON(w, err, http.StatusBadRequest)
-		return
-	}
-
-	jwtToken, err := app.Models.UserJWT.CreateJWTToken(requestPayload.Email)
-	if err != nil {
-		app.errorJSON(w, err, http.StatusBadRequest)
-		return
-	}
-
-	// log getByEmail
-	go app.logRequest("created users session", fmt.Sprintf("%s`s session is created", requestPayload.Email))
-
-	payload := jsonResponse{
-		Error:   false,
-		Message: fmt.Sprintf("session is valid"),
-		Data:    jwtToken,
 	}
 
 	app.writeJSON(w, http.StatusOK, payload)
