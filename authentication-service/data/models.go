@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"github.com/golang-jwt/jwt/v5"
 	"log"
 	"time"
 
@@ -12,6 +14,8 @@ import (
 
 const dbTimeout = time.Second * 3
 
+const key = "go-micro secure jwt key"
+
 var db *sql.DB
 
 // New create a new model
@@ -19,13 +23,15 @@ func New(dbPool *sql.DB) Models {
 	db = dbPool
 
 	return Models{
-		User: User{},
+		User:    User{},
+		UserJWT: UserJWT{},
 	}
 }
 
 // Models store all models service`s structure
 type Models struct {
-	User User
+	User    User
+	UserJWT UserJWT
 }
 
 // User store data of one user
@@ -38,6 +44,11 @@ type User struct {
 	Active    int       `json:"active"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type UserJWT struct {
+	jwt.RegisteredClaims
+	Email string `json:"email"`
 }
 
 // GetAll returns all users
@@ -314,6 +325,7 @@ func (u *User) PasswordMatches(plainText string) (bool, error) {
 	return true, nil
 }
 
+// TODO
 func (u *User) CheckUserExists(email string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
@@ -331,4 +343,41 @@ func (u *User) CheckUserExists(email string) (bool, error) {
 	log.Println(exists)
 
 	return exists, nil
+}
+
+// CreateJWTToken creates jwt token for user
+func (uJWT *UserJWT) CreateJWTToken(email string) (string, error) {
+	exp := time.Now().Add(2 * time.Second)
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserJWT{
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(exp),
+		},
+		Email: email,
+	})
+
+	signedString, err := token.SignedString([]byte(key))
+
+	if err != nil {
+		return "", fmt.Errorf("error creating signed string: %v", err)
+	}
+
+	return signedString, nil
+}
+
+func (uJWT *UserJWT) CheckJWTToken(jwtToken string) (string, error) {
+	var userClaim UserJWT
+
+	token, err := jwt.ParseWithClaims(jwtToken, &userClaim, func(token *jwt.Token) (interface{}, error) {
+		return []byte(key), nil
+	})
+	if err != nil {
+		return "", err
+	}
+
+	if !token.Valid {
+		return "", errors.New("invalid token")
+	}
+
+	return userClaim.Email, nil
 }

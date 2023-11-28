@@ -351,6 +351,66 @@ func (app *Config) DeleteByID(w http.ResponseWriter, r *http.Request) {
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// CheckSession checks valid or not session of user
+func (app *Config) CheckSession(w http.ResponseWriter, r *http.Request) {
+	var requestPayload struct {
+		SessionToken string `json:"session_token"`
+	}
+
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	email, err := app.Models.UserJWT.CheckJWTToken(requestPayload.SessionToken)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// log getByEmail
+	go app.logRequest("checked users session", fmt.Sprintf("%s`s session is valid", email))
+
+	payload := jsonResponse{
+		Error:   false,
+		Message: fmt.Sprintf("session is valid"),
+		Data:    email,
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
+// CreateSession creates new session of user
+func (app *Config) CreateSession(w http.ResponseWriter, r *http.Request) {
+	var requestPayload struct {
+		Email string `json:"email"`
+	}
+
+	err := app.readJSON(w, r, &requestPayload)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	jwtToken, err := app.Models.UserJWT.CreateJWTToken(requestPayload.Email)
+	if err != nil {
+		app.errorJSON(w, err, http.StatusBadRequest)
+		return
+	}
+
+	// log getByEmail
+	go app.logRequest("created users session", fmt.Sprintf("%s`s session is created", requestPayload.Email))
+
+	payload := jsonResponse{
+		Error:   false,
+		Message: fmt.Sprintf("session is valid"),
+		Data:    jwtToken,
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
 // logRequest requests of logger-service to log event
 func (app *Config) logRequest(name, data string) {
 	var entry struct {
