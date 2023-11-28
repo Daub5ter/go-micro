@@ -347,7 +347,7 @@ func (u *User) CheckUserExists(email string) (bool, error) {
 
 // CreateJWTToken creates jwt token for user
 func (uJWT *UserJWT) CreateJWTToken(email string) (string, error) {
-	exp := time.Now().Add(2 * time.Second)
+	exp := time.Now().Add(10 * time.Second)
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserJWT{
 		RegisteredClaims: jwt.RegisteredClaims{

@@ -171,44 +171,60 @@
     let firstNameOutput = document.getElementById("first-name-output")
     let lastNameOutput = document.getElementById("last-name-output")
 
-    /*let currentTime = new Date();
-    let timeCancelSessionString = localStorage.getItem("time_session");
-    const timeCancelSession = new Date(timeCancelSessionString);
-    if (timeCancelSession < currentTime) {
-        logOut();
-    }*/
-
-    //TODO: remake to session token
-    const emailUser = localStorage.getItem("email");
-    if (emailUser === null) {
+    const sessionToken = localStorage.getItem("session_token");
+    if (sessionToken === null) {
         loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`
     } else {
-        loginOutput.innerHTML = `<span class="text-muted">${emailUser}</span>`;
-
-        const payload = {
-            action: "get_user_by_email",
-            email: {
-                email: emailUser,
+        let payload = {
+            action: "authenticate_user_session",
+            session: {
+                session_token: sessionToken,
             }
         }
 
         const headers = new Headers();
         headers.append("Content-Type", "application/json");
 
-        const body = {
+        let body = {
             method: 'POST',
             body: JSON.stringify(payload),
             headers: headers,
         }
 
         fetch("http:\/\/localhost:8080/handle", body)
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.error) {
-                    console.log("Error to fetch auth user function")
+            .then((responseSession) => responseSession.json())
+            .then((dataSession) => {
+                if (dataSession.error) {
+                    localStorage.removeItem('session_token');
+                    console.log("Error to fetch auth session user function")
                 } else {
-                    firstNameOutput.innerHTML = `<span class="text-muted">${data.data.first_name}</span>`
-                    lastNameOutput.innerHTML = `<span class="text-muted">${data.data.last_name}</span>`
+                    payload = {
+                        action: "get_user_by_email",
+                        email: {
+                            email: dataSession.data,
+                        }
+                    }
+
+                    body = {
+                        method: 'POST',
+                        body: JSON.stringify(payload),
+                        headers: headers,
+                    }
+
+                    fetch("http:\/\/localhost:8080/handle", body)
+                        .then((response) => response.json())
+                        .then((data) => {
+                            if (data.error) {
+                                console.log("Error to fetch auth user function")
+                            } else {
+                                loginOutput.innerHTML = `<span class="text-muted">${data.data.email}</span>`;
+                                firstNameOutput.innerHTML = `<span class="text-muted">${data.data.first_name}</span>`
+                                lastNameOutput.innerHTML = `<span class="text-muted">${data.data.last_name}</span>`
+                            }
+                        })
+                        .catch((error) => {
+                            console.log(error)
+                        })
                 }
             })
             .catch((error) => {
@@ -249,18 +265,12 @@
                 if (data.error) {
                     output.innerHTML += `<br><strong>Error:</strong> ${data.message}`;
                 } else {
+                    localStorage.setItem('session_token', data.data.session_token);
+
                     output.innerHTML += `<br><strong>Response from broker service</strong>: ${data.message}`;
                     loginOutput.innerHTML = `<span class="text-muted">${data.data.email}</span>`;
                     firstNameOutput.innerHTML = `<span class="text-muted">${data.data.first_name}</span>`;
                     lastNameOutput.innerHTML = `<span class="text-muted">${data.data.last_name}</span>`;
-
-                    /*// 1 час
-                    let currentTime = new Date();
-                    let futureTime = new Date(currentTime.getTime() + (60 * 60 * 1000));
-                    let futureTimeString = futureTime.toISOString();
-
-                    localStorage.setItem('email', data.data.email);
-                    localStorage.setItem('time_session', futureTimeString)*/
                 }
             })
             .catch((error) => {
@@ -269,8 +279,7 @@
     }
 
     function logOut() {
-        //localStorage.removeItem('email');
-        //localStorage.removeItem('time_session');
+        localStorage.removeItem('session_token');
 
         loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`;
         firstNameOutput.innerHTML = `<span class="text-muted"></span>`;

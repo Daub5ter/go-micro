@@ -66,8 +66,6 @@ func (e *Emitter) PushWithResponse(event string, exchange string, severity strin
 
 	corrID := tools.RandomString(32)
 
-	log.Println("Pushing to channel")
-
 	err = channel.PublishWithContext(
 		context.TODO(),
 		exchange,
