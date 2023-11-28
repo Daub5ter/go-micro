@@ -120,7 +120,7 @@ func (app *Config) HandleSubmission(w http.ResponseWriter, r *http.Request) {
 	case "authenticate_user":
 		app.authenticateUserViaRabbit(w, requestPayload.Auth)
 	case "authenticate_user_session":
-		app.authenticateUserSession(w, requestPayload.Session)
+		app.authenticateUserSessionViaRabbit(w, requestPayload.Session)
 	case "registration_user":
 		app.registrationUserViaRabbit(w, requestPayload.Reg)
 	case "update_user":
@@ -803,6 +803,30 @@ func (app *Config) authenticateUserViaRabbit(w http.ResponseWriter, a AuthUserPa
 	app.writeJSON(w, http.StatusOK, payload)
 }
 
+// authenticateUserSessionViaRabbit auths user if session is valid via RabbitMQ
+func (app *Config) authenticateUserSessionViaRabbit(w http.ResponseWriter, st SessionTokenPayload) {
+	var requestPayload RequestPayload
+
+	requestPayload.Action = "authenticate_user_session"
+	requestPayload.Session = st
+
+	response, err := app.pushToQueue(requestPayload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	var payload jsonResponse
+
+	err = json.Unmarshal(response, &payload)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	app.writeJSON(w, http.StatusOK, payload)
+}
+
 // getAllUsersViaRabbit returns all users via RabbitMQ
 func (app *Config) getAllUsersViaRabbit(w http.ResponseWriter) {
 	var requestPayload RequestPayload
@@ -1030,6 +1054,8 @@ func (app *Config) pushToQueue(payload RequestPayload) ([]byte, error) {
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "delete.user.by.email")
 	case "delete_user_by_id":
 		response, err = emitter.PushWithResponse(string(j), payload.Action, "delete.user.by.id")
+	case "authenticate_user_session":
+		response, err = emitter.PushWithResponse(string(j), payload.Action, "authenticate.user.session")
 	default:
 		log.Printf("invalid name of channel RabbitMQ %s", payload.Action)
 	}

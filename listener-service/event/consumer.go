@@ -27,6 +27,7 @@ type jsonResponse struct {
 type Payload struct {
 	Action         string                `json:"action"`
 	Auth           AuthUserPayload       `json:"auth,omitempty"`
+	Session        SessionTokenPayload   `json:"session,omitempty"`
 	Reg            RegUserPayload        `json:"reg,omitempty"`
 	UpdateUser     UpdateUserPayload     `json:"update_user,omitempty"`
 	ChangePassword ChangePasswordPayload `json:"change_password,omitempty"`
@@ -89,6 +90,11 @@ type IDPayload struct {
 type LogPayload struct {
 	Name string `json:"name"`
 	Data string `json:"data"`
+}
+
+// SessionTokenPayload stores token of user`s session
+type SessionTokenPayload struct {
+	SessionToken string `json:"session_token"`
 }
 
 func NewConsumer(conn *amqp.Connection) (Consumer, error) {
@@ -156,6 +162,9 @@ func (consumer *Consumer) Listen() error {
 		return err
 	}
 	if err = ch.QueueBind(q.Name, "delete.user.by.id", "delete_user_by_id", false, nil); err != nil {
+		return err
+	}
+	if err = ch.QueueBind(q.Name, "authenticate.user.session", "authenticate_user_session", false, nil); err != nil {
 		return err
 	}
 
@@ -283,6 +292,13 @@ func handlePayload(payload Payload) jsonResponse {
 		}
 		response = resp
 
+	case "authenticate_user_session":
+		resp, err := authUserSession(payload)
+		if err != nil {
+			log.Println(err)
+		}
+		response = resp
+
 	default:
 		errString := fmt.Sprintf("invalid name of function %s, RabbitMQ", payload.Action)
 		log.Println(errString)
@@ -329,6 +345,23 @@ func auth(entry Payload) (jsonResponse, error) {
 
 	// call the service
 	request, err := http.NewRequest("POST", "http://authentication-service/authenticate", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	return handleSync(request, http.StatusOK)
+}
+
+// authUserSession auths user if session is valid via RabbitMQ
+func authUserSession(entry Payload) (jsonResponse, error) {
+	// create some json we'll send to the auth microservice
+	jsonData, err := json.MarshalIndent(entry.Session, "", "\t")
+	if err != nil {
+		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
+	}
+
+	// call the service
+	request, err := http.NewRequest("POST", "http://authentication-service/authenticate_session", bytes.NewBuffer(jsonData))
 	if err != nil {
 		return jsonResponse{Error: true, Message: fmt.Sprintf("error %v", err)}, err
 	}

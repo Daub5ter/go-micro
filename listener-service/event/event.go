@@ -38,6 +38,9 @@ func declareExchange(ch *amqp.Channel) error {
 	if err := ch.ExchangeDeclare("delete_user_by_id", "topic", true, false, false, false, nil); err != nil {
 		return err
 	}
+	if err := ch.ExchangeDeclare("authenticate_user_session", "topic", true, false, false, false, nil); err != nil {
+		return err
+	}
 
 	return nil
 }
