@@ -16,8 +16,6 @@ const dbTimeout = time.Second * 3
 
 const key = "go-micro secure jwt key"
 
-var exp = time.Now().Add(10 * time.Second)
-
 var db *sql.DB
 
 // New create a new model
@@ -349,6 +347,8 @@ func (u *User) CheckUserExists(email string) (bool, error) {
 
 // CreateJWTToken creates jwt token for user
 func (uJWT *UserJWT) CreateJWTToken(email string) (string, error) {
+	exp := time.Now().Add(10 * time.Second)
+
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, UserJWT{
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
