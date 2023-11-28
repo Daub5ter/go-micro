@@ -171,13 +171,14 @@
     let firstNameOutput = document.getElementById("first-name-output")
     let lastNameOutput = document.getElementById("last-name-output")
 
-    let currentTime = new Date();
+    /*let currentTime = new Date();
     let timeCancelSessionString = localStorage.getItem("time_session");
     const timeCancelSession = new Date(timeCancelSessionString);
     if (timeCancelSession < currentTime) {
         logOut();
-    }
+    }*/
 
+    //TODO: remake to session token
     const emailUser = localStorage.getItem("email");
     if (emailUser === null) {
         loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`
@@ -253,13 +254,13 @@
                     firstNameOutput.innerHTML = `<span class="text-muted">${data.data.first_name}</span>`;
                     lastNameOutput.innerHTML = `<span class="text-muted">${data.data.last_name}</span>`;
 
-                    // 1 час
+                    /*// 1 час
                     let currentTime = new Date();
                     let futureTime = new Date(currentTime.getTime() + (60 * 60 * 1000));
                     let futureTimeString = futureTime.toISOString();
 
                     localStorage.setItem('email', data.data.email);
-                    localStorage.setItem('time_session', futureTimeString)
+                    localStorage.setItem('time_session', futureTimeString)*/
                 }
             })
             .catch((error) => {
@@ -268,8 +269,8 @@
     }
 
     function logOut() {
-        localStorage.removeItem('email');
-        localStorage.removeItem('time_session');
+        //localStorage.removeItem('email');
+        //localStorage.removeItem('time_session');
 
         loginOutput.innerHTML = `<span class="text-muted">You dont login</span>`;
         firstNameOutput.innerHTML = `<span class="text-muted"></span>`;
