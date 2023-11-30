@@ -1,6 +1,7 @@
 package main
 
 import (
+	"analysis/cmd/data"
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
@@ -51,7 +52,7 @@ func main() {
 	}()
 
 	app := Config{
-		Models: data.New(mclient),
+		Models: data.New(rclient, mclient),
 	}
 
 	// start web server
