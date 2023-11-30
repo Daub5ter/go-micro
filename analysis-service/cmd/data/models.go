@@ -65,19 +65,22 @@ func (a *ActionsUser) Get(entry ActionsUser) (string, error) {
 	return val, nil
 }
 
-func (a *ActionsUser) GetAll() (map[string]string, error) {
+func (a *ActionsUser) GetAll() (map[string]string, []string, error) {
+	var keys []string
 	var cursor uint64
+	var err error
 	var keyValues map[string]string
+
 	for {
-		keys, cursor, err := rclient.Scan(context.Background(), cursor, "actions *", 0).Result()
+		keys, cursor, err = rclient.Scan(context.Background(), cursor, "actions *", 0).Result()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 
 		for _, key := range keys {
 			val, err := rclient.Get(context.Background(), key).Result()
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 
 			keyValues[key] = val
@@ -88,7 +91,34 @@ func (a *ActionsUser) GetAll() (map[string]string, error) {
 		}
 	}
 
-	return keyValues, nil
+	return keyValues, keys, nil
+}
+
+func (*ActionsUser) DeleteAll() error {
+	err := rclient.FlushAll(context.Background()).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (*ActionsUser) DeleteSome(keys []string) error {
+	err := rclient.Del(context.Background(), keys...).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (*ActionsUser) DeleteOne(key string) error {
+	err := rclient.Del(context.Background(), key).Err()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *AnalysisUser) Insert(entry AnalysisUser) error {
@@ -109,7 +139,7 @@ func (a *AnalysisUser) Insert(entry AnalysisUser) error {
 	return nil
 }
 
-func (a *AnalysisUser) All() ([]*AnalysisUser, error) {
+func (a *AnalysisUser) GetAll() ([]*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
@@ -125,7 +155,7 @@ func (a *AnalysisUser) All() ([]*AnalysisUser, error) {
 	}
 	defer cursor.Close(ctx)
 
-	var logs []*AnalysisUser
+	var anals []*AnalysisUser
 
 	for cursor.Next(ctx) {
 		var item AnalysisUser
@@ -135,11 +165,11 @@ func (a *AnalysisUser) All() ([]*AnalysisUser, error) {
 			log.Println("Error decoding anal into slice:", err)
 			return nil, err
 		} else {
-			logs = append(logs, &item)
+			anals = append(anals, &item)
 		}
 	}
 
-	return logs, nil
+	return anals, nil
 }
 
 func (a *AnalysisUser) GetOne(id string) (*AnalysisUser, error) {
@@ -193,7 +223,7 @@ func (a *AnalysisUser) Update() (*mongo.UpdateResult, error) {
 			{"$set", bson.D{
 				{"email", a.Email},
 				{"actions", a.Actions},
-				{"pecent_activity", a.PercentActivity},
+				{"percent_activity", a.PercentActivity},
 				{"updated_at", time.Now()},
 			}},
 		},
@@ -203,4 +233,49 @@ func (a *AnalysisUser) Update() (*mongo.UpdateResult, error) {
 	}
 
 	return result, nil
+}
+
+func (a *AnalysisUser) CountDocuments() (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	collection := mclient.Database("anal").Collection("anal")
+
+	filter := bson.M{}
+	countOptions := options.Count().SetHint("_id")
+	count, err := collection.CountDocuments(ctx, filter, countOptions)
+	if err != nil {
+		return 0, err
+	}
+
+	return count, nil
+}
+
+func (a *AnalysisUser) SumValues() (int, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	collection := mclient.Database("anal").Collection("anal")
+
+	pipeline := bson.A{
+		bson.M{"$group": bson.M{"_id": nil, "actions": bson.M{"$sum": "$value"}}},
+	}
+
+	opts := options.Aggregate().SetAllowDiskUse(true)
+	cursor, err := collection.Aggregate(ctx, pipeline, opts)
+	if err != nil {
+		return 0, err
+	}
+	defer cursor.Close(ctx)
+
+	var result struct {
+		Actions int `bson:"actions"`
+	}
+
+	if cursor.Next(ctx) {
+		if err := cursor.Decode(&result); err != nil {
+			return 0, err
+		}
+	}
+	return result.Actions, nil
 }
