@@ -365,6 +365,7 @@ func (uJWT *UserJWT) CreateJWTToken(email string) (string, error) {
 	return signedString, nil
 }
 
+// TODO	rens
 func (uJWT *UserJWT) CheckJWTToken(jwtToken string) (string, error) {
 	var userClaim UserJWT
 
