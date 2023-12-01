@@ -22,6 +22,15 @@ services:
       mode: replicated
       replicas: 1
 
+  analysis-service:
+    build:
+      context: ./../analysis-service
+      dockerfile: ./../analysis-service/analysis-service.dockerfile
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+
   mailer-service:
     build:
       context: ./../mail-service
@@ -86,6 +95,22 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
     volumes:
       - ./db-data/mongo/:/data/db
+
+  redis:
+    image: 'redis:6.0'
+    ports:
+      - "6379:6379"
+    restart: always
+    deploy:
+      mode: replicated
+      replicas: 1
+    command:
+      /bin/sh -c "redis-server --requirepass $REDIS_PASSWORD"
+    volumes:
+      - ./db-data/redis/redis-data:/var/lib/redis
+      - ./db-data/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
 
   mailhog:
     image: 'mailhog/mailhog:latest'

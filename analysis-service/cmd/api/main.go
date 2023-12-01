@@ -14,7 +14,7 @@ import (
 
 const (
 	webPort  = "80"
-	redisURL = "localhost:6379"
+	redisURL = "redis:6379"
 	mongoURL = "mongodb://mongo:27017"
 )
 
@@ -29,7 +29,7 @@ func main() {
 	// connect to redis
 	redisClient, err := connectToRedis()
 	if err != nil {
-		log.Println("error to connect mongo", err)
+		log.Println("error to connect redis", err)
 	}
 	rclient = redisClient
 
@@ -71,8 +71,8 @@ func main() {
 func connectToRedis() (*redis.Client, error) {
 	redisClient := redis.NewClient(&redis.Options{
 		// TODO create env
-		Addr:     "localhost:6379",
-		Password: "",
+		Addr:     redisURL,
+		Password: "password",
 		DB:       0,
 	})
 
