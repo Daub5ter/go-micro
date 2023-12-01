@@ -10,6 +10,7 @@ type JSONPayload struct {
 }
 
 func (app *Config) WriteAnalysis(w http.ResponseWriter, r *http.Request) {
+
 	// read json into var
 	var requestPayload JSONPayload
 	app.readJSON(w, r, &requestPayload)
@@ -19,7 +20,16 @@ func (app *Config) WriteAnalysis(w http.ResponseWriter, r *http.Request) {
 		Email: requestPayload.Email,
 	}
 
-	err := app.Models.ActionsUser.Set(event)
+	value, err := app.Models.ActionsUser.Get(event)
+	if err != nil {
+		app.errorJSON(w, err)
+		return
+	}
+
+	value++
+	event.Actions = value
+
+	err = app.Models.ActionsUser.Set(event)
 	if err != nil {
 		app.errorJSON(w, err)
 		return

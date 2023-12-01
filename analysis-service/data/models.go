@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -31,7 +32,7 @@ type Models struct {
 
 type ActionsUser struct {
 	Email   string `json:"email"`
-	Actions string `json:"actions"`
+	Actions int    `json:"actions"`
 }
 
 type AnalysisUser struct {
@@ -52,17 +53,22 @@ func (a *ActionsUser) Set(entry ActionsUser) error {
 	return nil
 }
 
-func (a *ActionsUser) Get(entry ActionsUser) (string, error) {
+func (a *ActionsUser) Get(entry ActionsUser) (int, error) {
 	val, err := rclient.Get(context.Background(), "actions "+entry.Email).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return "", nil
+			return 0, nil
 		} else {
-			return "", err
+			return 0, err
 		}
 	}
 
-	return val, nil
+	value, err := strconv.Atoi(val)
+	if err != nil {
+		return 0, err
+	}
+
+	return value, nil
 }
 
 func (a *ActionsUser) GetAll() (map[string]string, []string, error) {

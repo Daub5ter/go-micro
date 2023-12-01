@@ -70,6 +70,7 @@ func main() {
 
 func connectToRedis() (*redis.Client, error) {
 	redisClient := redis.NewClient(&redis.Options{
+		// TODO create env
 		Addr:     "localhost:6379",
 		Password: "",
 		DB:       0,

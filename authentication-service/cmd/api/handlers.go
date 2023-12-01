@@ -62,6 +62,9 @@ func (app *Config) Registration(w http.ResponseWriter, r *http.Request) {
 	// log registration
 	go app.logRequest("registered", fmt.Sprintf("%s registered in", requestPayload.Email))
 
+	// analysis action
+	go app.analysisRequest(requestPayload.Email)
+
 	payload := jsonResponse{
 		Error:   false,
 		Message: fmt.Sprintf("Created user with id %v", id),
@@ -127,6 +130,9 @@ func (app *Config) Authenticate(w http.ResponseWriter, r *http.Request) {
 	// log authentication
 	go app.logRequest("authentication", fmt.Sprintf("%s logged in", user.Email))
 
+	// analysis action
+	go app.analysisRequest(requestPayload.Email)
+
 	// structure for response without password
 	u := struct {
 		ID           int       `json:"id"`
@@ -176,7 +182,7 @@ func (app *Config) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log getByID
+	// log get by id
 	go app.logRequest("receive user", fmt.Sprintf("%s received", user.Email))
 
 	payload := jsonResponse{
@@ -235,6 +241,9 @@ func (app *Config) Update(w http.ResponseWriter, r *http.Request) {
 	// log update
 	go app.logRequest("update", fmt.Sprintf("%s updated, now %s", requestPayload.Email, user.Email))
 
+	// analysis action
+	go app.analysisRequest(requestPayload.Email)
+
 	payload := jsonResponse{
 		Error:   false,
 		Message: fmt.Sprintf("Updated user with id %v", user.ID),
@@ -279,8 +288,11 @@ func (app *Config) ChangePassword(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log update
+	// log change password
 	go app.logRequest("change password", fmt.Sprintf("%s changed password", requestPayload.Email))
+
+	// analysis action
+	go app.analysisRequest(user.Email)
 
 	payload := jsonResponse{
 		Error:   false,
@@ -316,7 +328,7 @@ func (app *Config) DeleteByEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log getByEmail
+	// log delete by email
 	go app.logRequest("delete user", fmt.Sprintf("%s deleted", requestPayload.Email))
 
 	payload := jsonResponse{
@@ -347,7 +359,7 @@ func (app *Config) DeleteByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log getByID
+	// log delete by id
 	go app.logRequest("delete user", fmt.Sprintf("user with id %v deleted", requestPayload.ID))
 
 	payload := jsonResponse{
@@ -377,8 +389,11 @@ func (app *Config) AuthenticateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// log getByEmail
+	// log session
 	go app.logRequest("checked users session", fmt.Sprintf("%s`s session is valid", email))
+
+	// analysis action
+	go app.analysisRequest(email)
 
 	payload := jsonResponse{
 		Error:   false,
@@ -401,6 +416,29 @@ func (app *Config) logRequest(name, data string) {
 
 	jsonData, _ := json.MarshalIndent(entry, "", "\t")
 	logServiceURL := "http://logger-service/log"
+
+	request, err := http.NewRequest("POST", logServiceURL, bytes.NewBuffer(jsonData))
+	if err != nil {
+		log.Println(err)
+	}
+
+	client := &http.Client{}
+	_, err = client.Do(request)
+	if err != nil {
+		log.Println(err)
+	}
+}
+
+// analysisRequest requests of analysis-service to analysis event
+func (app *Config) analysisRequest(email string) {
+	var entry struct {
+		Email string `json:"email"`
+	}
+
+	entry.Email = email
+
+	jsonData, _ := json.MarshalIndent(entry, "", "\t")
+	logServiceURL := "http://analysis-service/analysis"
 
 	request, err := http.NewRequest("POST", logServiceURL, bytes.NewBuffer(jsonData))
 	if err != nil {
