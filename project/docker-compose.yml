@@ -21,6 +21,9 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    environment:
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
 
   analysis-service:
     build:
@@ -30,6 +33,10 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      MONGO_USERNAME: ${MONGO_USERNAME}
+      MONGO_PASSWORD: ${MONGO_PASSWORD}
 
   mailer-service:
     build:
@@ -85,14 +92,15 @@ services:
     volumes:
       - ./db-data/postgres/:/var/lib/postgresql/data/
 
+  #mongosh ${USERNAME} -u ${USERNAME} -p ${PASSWORD}
   mongo:
     image: 'mongo:7.0'
     ports:
       - "27017:27017"
     environment:
-      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: ${MONGO_DATABASE_LOGS}, ${MONGO_DATABASE_USERS_ANALYSIS}
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
     volumes:
       - ./db-data/mongo/:/data/db
 
@@ -104,13 +112,14 @@ services:
     deploy:
       mode: replicated
       replicas: 1
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
     command:
       /bin/sh -c "redis-server --requirepass $REDIS_PASSWORD"
     volumes:
       - ./db-data/redis/redis-data:/var/lib/redis
       - ./db-data/redis/redis.conf:/usr/local/etc/redis/redis.conf
-    environment:
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
 
   mailhog:
     image: 'mailhog/mailhog:latest'

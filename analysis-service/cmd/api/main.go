@@ -8,7 +8,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"math"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -70,18 +72,41 @@ func main() {
 
 func connectToRedis() (*redis.Client, error) {
 	redisClient := redis.NewClient(&redis.Options{
-		// TODO create env
 		Addr:     redisURL,
-		Password: "password",
+		Password: os.Getenv("REDIS_PASSWORD"),
 		DB:       0,
 	})
+	var counts int64
+	var backOff = 1 * time.Second
 
-	if err := redisClient.Ping(context.TODO()).Err(); err != nil {
-		log.Println("Error connecting:", err)
-		return nil, err
+	// don`t continue until redis is ready
+	for {
+		rc := redis.NewClient(&redis.Options{
+			Addr:     redisURL,
+			Password: os.Getenv("REDIS_PASSWORD"),
+			DB:       0,
+		})
+
+		err := redisClient.Ping(context.TODO()).Err()
+		if err != nil {
+			log.Println("Error connecting:", err)
+			counts++
+		} else {
+			log.Println("Connected to redis")
+			redisClient = rc
+			break
+		}
+
+		if counts > 5 {
+			fmt.Println(err)
+			return nil, err
+		}
+
+		backOff = time.Duration(math.Pow(float64(counts), 2)) * time.Second
+		log.Println("backing off")
+		time.Sleep(backOff)
+		continue
 	}
-
-	log.Println("Connected to redis")
 
 	return redisClient, nil
 }
@@ -90,9 +115,8 @@ func connectToMongo() (*mongo.Client, error) {
 	// create connection options
 	clientOptions := options.Client().ApplyURI(mongoURL)
 	clientOptions.SetAuth(options.Credential{
-		// TODO create env
-		Username: "admin",
-		Password: "password",
+		Username: os.Getenv("MONGO_USERNAME"),
+		Password: os.Getenv("MONGO_PASSWORD"),
 	})
 
 	// connect
