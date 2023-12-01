@@ -122,7 +122,7 @@ func (*ActionsUser) DeleteOne(key string) error {
 }
 
 func (a *AnalysisUser) Insert(entry AnalysisUser) error {
-	collection := mclient.Database("anal").Collection("anal")
+	collection := mclient.Database("users_analysis").Collection("users_analysis")
 
 	_, err := collection.InsertOne(context.TODO(), AnalysisUser{
 		Email:           entry.Email,
@@ -143,7 +143,7 @@ func (a *AnalysisUser) GetAll() ([]*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("anal").Collection("anal")
+	collection := mclient.Database("users_analysis").Collection("users_analysis")
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{"created_at", -1}})
@@ -162,7 +162,7 @@ func (a *AnalysisUser) GetAll() ([]*AnalysisUser, error) {
 
 		err = cursor.Decode(&item)
 		if err != nil {
-			log.Println("Error decoding anal into slice:", err)
+			log.Println("Error decoding users_analysis into slice:", err)
 			return nil, err
 		} else {
 			anals = append(anals, &item)
@@ -176,7 +176,7 @@ func (a *AnalysisUser) GetOne(id string) (*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("anal").Collection("anal")
+	collection := mclient.Database("users_analysis").Collection("users_analysis")
 
 	docID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -196,7 +196,7 @@ func (a *AnalysisUser) DropCollection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("anal").Collection("anal")
+	collection := mclient.Database("users_analysis").Collection("users_analysis")
 
 	if err := collection.Drop(ctx); err != nil {
 		return err
@@ -209,7 +209,7 @@ func (a *AnalysisUser) Update() (*mongo.UpdateResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("anal").Collection("anal")
+	collection := mclient.Database("users_analysis").Collection("users_analysis")
 
 	docID, err := primitive.ObjectIDFromHex(a.ID)
 	if err != nil {
@@ -239,7 +239,7 @@ func (a *AnalysisUser) CountDocuments() (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("anal").Collection("anal")
+	collection := mclient.Database("users_analysis").Collection("users_analysis")
 
 	filter := bson.M{}
 	countOptions := options.Count().SetHint("_id")
@@ -255,7 +255,7 @@ func (a *AnalysisUser) SumValues() (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("anal").Collection("anal")
+	collection := mclient.Database("users_analysis").Collection("users_analysis")
 
 	pipeline := bson.A{
 		bson.M{"$group": bson.M{"_id": nil, "actions": bson.M{"$sum": "$value"}}},

@@ -1,7 +1,7 @@
 package main
 
 import (
-	"analysis/cmd/data"
+	"analysis/data"
 	"context"
 	"fmt"
 	"github.com/redis/go-redis/v9"
