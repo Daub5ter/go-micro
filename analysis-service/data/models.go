@@ -2,6 +2,7 @@ package data
 
 import (
 	"context"
+	"errors"
 	"github.com/redis/go-redis/v9"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -56,7 +57,7 @@ func (a *ActionsUser) Set(entry ActionsUser) error {
 func (a *ActionsUser) Get(entry ActionsUser) (int, error) {
 	val, err := rclient.Get(context.Background(), "actions "+entry.Email).Result()
 	if err != nil {
-		if err == redis.Nil {
+		if errors.Is(err, redis.Nil) {
 			return 0, nil
 		} else {
 			return 0, err
@@ -128,7 +129,7 @@ func (*ActionsUser) DeleteOne(key string) error {
 }
 
 func (a *AnalysisUser) Insert(entry AnalysisUser) error {
-	collection := mclient.Database("analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users")
 
 	_, err := collection.InsertOne(context.TODO(), AnalysisUser{
 		Email:           entry.Email,
@@ -149,7 +150,7 @@ func (a *AnalysisUser) GetAll() ([]*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users")
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{"created_at", -1}})
@@ -168,7 +169,7 @@ func (a *AnalysisUser) GetAll() ([]*AnalysisUser, error) {
 
 		err = cursor.Decode(&item)
 		if err != nil {
-			log.Println("Error decoding users_analysis into slice:", err)
+			log.Println("Error decoding analysis user into slice:", err)
 			return nil, err
 		} else {
 			anals = append(anals, &item)
@@ -182,7 +183,7 @@ func (a *AnalysisUser) GetOneByID(id string) (*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users")
 
 	docID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -198,31 +199,30 @@ func (a *AnalysisUser) GetOneByID(id string) (*AnalysisUser, error) {
 	return &entry, nil
 }
 
-/*func (a *AnalysisUser) GetOneByEmail(email string) (*AnalysisUser, error) {
+func (a *AnalysisUser) GetOneByEmail(email string) (*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("analysis").Collection("users_analysis")
-
-	docID, err := primitive.ObjectIDFromHex(id)
-	if err != nil {
-		return nil, err
-	}
+	collection := mclient.Database("analysis").Collection("users")
 
 	var entry AnalysisUser
-	err = collection.FindOne(ctx, bson.M{"_id": docID}).Decode(&entry)
+	err := collection.FindOne(ctx, bson.M{"email": email}).Decode(&entry)
 	if err != nil {
-		return nil, err
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, nil
+		} else {
+			return nil, err
+		}
 	}
 
 	return &entry, nil
-}*/
+}
 
 func (a *AnalysisUser) DropCollection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users")
 
 	if err := collection.Drop(ctx); err != nil {
 		return err
@@ -235,7 +235,7 @@ func (a *AnalysisUser) Update() (*mongo.UpdateResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users")
 
 	docID, err := primitive.ObjectIDFromHex(a.ID)
 	if err != nil {
@@ -259,49 +259,4 @@ func (a *AnalysisUser) Update() (*mongo.UpdateResult, error) {
 	}
 
 	return result, nil
-}
-
-func (a *AnalysisUser) CountDocuments() (int64, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	collection := mclient.Database("analysis").Collection("users_analysis")
-
-	filter := bson.M{}
-	countOptions := options.Count().SetHint("_id")
-	count, err := collection.CountDocuments(ctx, filter, countOptions)
-	if err != nil {
-		return 0, err
-	}
-
-	return count, nil
-}
-
-func (a *AnalysisUser) SumValues() (int, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	collection := mclient.Database("analysis").Collection("users_analysis")
-
-	pipeline := bson.A{
-		bson.M{"$group": bson.M{"_id": nil, "actions": bson.M{"$sum": "$value"}}},
-	}
-
-	opts := options.Aggregate().SetAllowDiskUse(true)
-	cursor, err := collection.Aggregate(ctx, pipeline, opts)
-	if err != nil {
-		return 0, err
-	}
-	defer cursor.Close(ctx)
-
-	var result struct {
-		Actions int `bson:"actions"`
-	}
-
-	if cursor.Next(ctx) {
-		if err := cursor.Decode(&result); err != nil {
-			return 0, err
-		}
-	}
-	return result.Actions, nil
 }
