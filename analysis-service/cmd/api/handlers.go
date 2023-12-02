@@ -2,6 +2,7 @@ package main
 
 import (
 	"analysis/data"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -86,41 +87,17 @@ func (app *Config) UpdateDB(done chan bool) {
 				totalActions += value
 			}
 
-			for key, val := range keyValues {
-				key = strings.ReplaceAll(key, "actions ", "")
-				analUser, err := app.Models.AnalysisUser.GetOneByEmail(key)
-				if err != nil {
-					log.Println(err)
-				}
-
-				actions, err := strconv.Atoi(val)
-				if err != nil {
-					log.Println(err)
-				}
-
-				if analUser == nil {
-					err = app.Models.AnalysisUser.Insert(
-						data.AnalysisUser{
-							Email:           key,
-							Actions:         actions,
-							PercentActivity: float64(100 * actions / totalActions),
-						})
-					if err != nil {
-						log.Printf("error with insert: %v", err)
-					}
-				} else {
-					analUser.Actions = analUser.Actions + actions
-					analUser.PercentActivity = float64(100 * (analUser.Actions + actions) / totalActions)
-
-					_, err = analUser.Update()
-					if err != nil {
-						log.Printf("error with update: %v", err)
-					}
-				}
-			}
-
 			for _, au := range analUsers {
-				au.PercentActivity = float64(100 * (au.Actions) / totalActions)
+				v, ok := keyValues[fmt.Sprintf("actions %s", au.Email)]
+				if ok {
+					actions, err := strconv.Atoi(v)
+					if err != nil {
+						log.Println(err)
+					}
+					au.PercentActivity = 100 * float64(au.Actions+actions) / float64(totalActions)
+				} else {
+					au.PercentActivity = 100 * float64(au.Actions) / float64(totalActions)
+				}
 
 				_, err = au.Update()
 				if err != nil {
@@ -128,9 +105,35 @@ func (app *Config) UpdateDB(done chan bool) {
 				}
 			}
 
+			for key, val := range keyValues {
+				key = strings.ReplaceAll(key, "actions ", "")
+				analUser, err := app.Models.AnalysisUser.GetOneByEmail(key)
+				if err != nil {
+					log.Println(err)
+				}
+
+				if analUser == nil {
+					actions, err := strconv.Atoi(val)
+					if err != nil {
+						log.Println(err)
+					}
+
+					err = app.Models.AnalysisUser.Insert(
+						data.AnalysisUser{
+							Email:           key,
+							Actions:         actions,
+							PercentActivity: 100 * float64(actions) / float64(totalActions),
+						})
+					if err != nil {
+						log.Printf("error with insert: %v", err)
+					}
+				}
+			}
+
 			log.Println("Analysis db updated. Next update will after 30 seconds")
 
 			done <- true
+			return
 		}
 	}
 }
