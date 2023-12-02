@@ -75,7 +75,7 @@ func (a *ActionsUser) GetAll() (map[string]string, []string, error) {
 	var keys []string
 	var cursor uint64
 	var err error
-	var keyValues map[string]string
+	keyValues := make(map[string]string)
 
 	for {
 		keys, cursor, err = rclient.Scan(context.Background(), cursor, "actions *", 0).Result()
@@ -128,7 +128,7 @@ func (*ActionsUser) DeleteOne(key string) error {
 }
 
 func (a *AnalysisUser) Insert(entry AnalysisUser) error {
-	collection := mclient.Database("users_analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users_analysis")
 
 	_, err := collection.InsertOne(context.TODO(), AnalysisUser{
 		Email:           entry.Email,
@@ -149,7 +149,7 @@ func (a *AnalysisUser) GetAll() ([]*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("users_analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users_analysis")
 
 	opts := options.Find()
 	opts.SetSort(bson.D{{"created_at", -1}})
@@ -178,11 +178,11 @@ func (a *AnalysisUser) GetAll() ([]*AnalysisUser, error) {
 	return anals, nil
 }
 
-func (a *AnalysisUser) GetOne(id string) (*AnalysisUser, error) {
+func (a *AnalysisUser) GetOneByID(id string) (*AnalysisUser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("users_analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users_analysis")
 
 	docID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -198,11 +198,31 @@ func (a *AnalysisUser) GetOne(id string) (*AnalysisUser, error) {
 	return &entry, nil
 }
 
+/*func (a *AnalysisUser) GetOneByEmail(email string) (*AnalysisUser, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+
+	collection := mclient.Database("analysis").Collection("users_analysis")
+
+	docID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var entry AnalysisUser
+	err = collection.FindOne(ctx, bson.M{"_id": docID}).Decode(&entry)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entry, nil
+}*/
+
 func (a *AnalysisUser) DropCollection() error {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("users_analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users_analysis")
 
 	if err := collection.Drop(ctx); err != nil {
 		return err
@@ -215,7 +235,7 @@ func (a *AnalysisUser) Update() (*mongo.UpdateResult, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("users_analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users_analysis")
 
 	docID, err := primitive.ObjectIDFromHex(a.ID)
 	if err != nil {
@@ -245,7 +265,7 @@ func (a *AnalysisUser) CountDocuments() (int64, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("users_analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users_analysis")
 
 	filter := bson.M{}
 	countOptions := options.Count().SetHint("_id")
@@ -261,7 +281,7 @@ func (a *AnalysisUser) SumValues() (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
 
-	collection := mclient.Database("users_analysis").Collection("users_analysis")
+	collection := mclient.Database("analysis").Collection("users_analysis")
 
 	pipeline := bson.A{
 		bson.M{"$group": bson.M{"_id": nil, "actions": bson.M{"$sum": "$value"}}},

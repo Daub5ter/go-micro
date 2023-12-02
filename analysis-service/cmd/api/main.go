@@ -64,6 +64,14 @@ func main() {
 		Handler: app.routes(),
 	}
 
+	done := make(chan bool)
+	go func() {
+		for {
+			go app.UpdateDB(done)
+			<-done
+		}
+	}()
+
 	err = srv.ListenAndServe()
 	if err != nil {
 		log.Panic(err)
