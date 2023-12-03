@@ -325,7 +325,8 @@ func (u *User) PasswordMatches(plainText string) (bool, error) {
 	return true, nil
 }
 
-// TODO
+// TODO add CheckUserExists func realization
+// CheckUserExists checks if user exits or not
 func (u *User) CheckUserExists(email string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), dbTimeout)
 	defer cancel()
@@ -365,7 +366,7 @@ func (uJWT *UserJWT) CreateJWTToken(email string) (string, error) {
 	return signedString, nil
 }
 
-// TODO	rens
+// CheckJWTToken checks valid token or not
 func (uJWT *UserJWT) CheckJWTToken(jwtToken string) (string, error) {
 	var userClaim UserJWT
 
